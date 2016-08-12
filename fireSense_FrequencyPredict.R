@@ -19,25 +19,25 @@ defineModule(sim, list(
     #defineParameter("paramName", "paramClass", default, min, max, "parameter description")),
     defineParameter("sf", "numeric", 1, 
       desc = "numeric. Rescale predicted rates of fire count at any given temporal and spatial
-              resolutions by a factor: new_res = sf * old_res. sf describes the ratio between the
+              resolutions by a factor sf = new_res / old_res. sf describes the ratio between the
               scale of data aggregation at which the statistical model was fitted to the scale at
               which predictions should be made."),
     defineParameter(name = "data", class = "character", default = NULL,
       desc = "optional. A character vector indicating the names of objects present in the simList
               environment, in which to look for variables with which to predict. Objects can be
-              data.frames or named lists of RasterLayer. However, objects of different classes
+              data.frames or named lists of RasterLayers. However, objects of different classes
               cannot be mixed. For example, variables cannot be searched simultaneously within an
               object of class data.frame and within an object of class RasterLayer. If omitted, 
               or if variables are not found in the data objects, variables are searched in the
               simList environment."),
     defineParameter(name = "mapping", class = "character", default = NULL,
       desc = "optional. Named character vector to map variable names in the formula to those in
-              the data objects. Names of unmapped variables are used directly to look for
-              variables in data objects or in the simList environment."),
+              data objects. Names of unmapped variables are used directly to look for variables
+              in data objects or in the simList environment."),
     defineParameter(name = "initialRunTime", class = "numeric", default = NA, 
       desc = "optional. Simulation time at which to start this module. If omitted, start at start(simList)."),
     defineParameter(name = "intervalRunModule", class = "numeric", default = NA, 
-      desc = "optional. Interval in simulation time units between two module runs.")
+      desc = "optional. Interval in simulation time units between two runs of this module.")
   ),
   inputObjects = data.frame(
     objectName = "fireSense_FrequencyFitted",
