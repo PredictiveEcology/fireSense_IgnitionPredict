@@ -179,7 +179,6 @@ fireSense_FrequencyPredictRun <- function(sim) {
     }
   }
   
-  
   if (!is.na(p(sim)$intervalRunModule))
     sim <- scheduleEvent(sim, time(sim) + p(sim)$intervalRunModule, "fireSense_FrequencyPredict", "run")
   
