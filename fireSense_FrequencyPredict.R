@@ -114,7 +114,7 @@ fireSense_FrequencyPredictRun <- function(sim) {
       }
       
     ## Handling piecewise terms in a formula
-      pw <- function(v, k) pmax(v - k)
+      pw <- function(v, k) pmax(v - k, 0)
 
   envData <- new.env(parent = envir(sim))
   on.exit(rm(envData))
