@@ -141,7 +141,7 @@ fireSense_FrequencyPredictRun <- function(sim) {
   formula <- reformulate(attr(terms, "term.labels"), intercept = attr(terms, "intercept"))
   allxy <- all.vars(formula)
 
-  if (!is.null(sim$fireSense_FrequencyFitted$knots)){
+  if (!is.null(sim$fireSense_FrequencyFitted$knots)) {
     
     list2env(as.list(sim$fireSense_FrequencyFitted$knots), envir = envData)
     kNames <- names(sim$fireSense_FrequencyFitted$knots)
