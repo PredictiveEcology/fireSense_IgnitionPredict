@@ -8,7 +8,7 @@ defineModule(sim, list(
   keywords = c("fire frequency", "additive property", "poisson", "negative binomial", "fireSense"),
   authors = c(person("Jean", "Marchal", email = "jean.d.marchal@gmail.com", role = c("aut", "cre"))),
   childModules = character(),
-  version = numeric_version("1.2.0.9004"),
+  version = numeric_version("0.0.1"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = NA_character_, # e.g., "year",
@@ -34,8 +34,8 @@ defineModule(sim, list(
       desc = "optional. Named character vector to map variable names in the formula to those in
               data objects. Names of unmapped variables are used directly to look for variables
               in data objects or in the simList environment."),
-    defineParameter(name = "initialRunTime", class = "numeric", default = NA, 
-      desc = "optional. Simulation time at which to start this module. If omitted, start at start(simList)."),
+    defineParameter(name = "initialRunTime", class = "numeric", default = stack(sim), 
+      desc = "optional. Simulation time at which to start this module. Defaults to simulation start time."),
     defineParameter(name = "intervalRunModule", class = "numeric", default = NA, 
       desc = "optional. Interval in simulation time units between two runs of this module.")
   ),
@@ -94,7 +94,7 @@ doEvent.fireSense_FrequencyPredict = function(sim, eventTime, eventType, debug =
 ### template initialization
 fireSense_FrequencyPredictInit <- function(sim) {
 
-  sim <- scheduleEvent(sim, eventTime = if (is.na(p(sim)$initialRunTime)) start(sim) else p(sim)$initialRunTime, "fireSense_FrequencyPredict", "run")
+  sim <- scheduleEvent(sim, eventTime = p(sim)$initialRunTime, "fireSense_FrequencyPredict", "run")
   sim
   
 }
