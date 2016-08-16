@@ -34,7 +34,7 @@ defineModule(sim, list(
       desc = "optional. Named character vector to map variable names in the formula to those in
               data objects. Names of unmapped variables are used directly to look for variables
               in data objects or in the simList environment."),
-    defineParameter(name = "initialRunTime", class = "numeric", default = stack(sim), 
+    defineParameter(name = "initialRunTime", class = "numeric", default = start(sim), 
       desc = "optional. Simulation time at which to start this module. Defaults to simulation start time."),
     defineParameter(name = "intervalRunModule", class = "numeric", default = NA, 
       desc = "optional. Interval in simulation time units between two runs of this module.")
