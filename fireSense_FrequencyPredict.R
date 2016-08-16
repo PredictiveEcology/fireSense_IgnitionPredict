@@ -169,15 +169,15 @@ fireSense_FrequencyPredictRun <- function(sim) {
 
   } else {
     
-    varsExist <- allxy %in% ls(envData)
-    varsClass <- unlist(lapply(allxy, function(x) is.data.frame(envData[[x]]) || is(envData[[x]], "RasterLayer")))
+    exist <- allxy %in% ls(envData)
+    class <- unlist(lapply(allxy, function(x) is.data.frame(envData[[x]]) || is(envData[[x]], "RasterLayer")))
 
-    if (any(!varsExist)) {
-      stop(paste0("fireSense_FrequencyPredict> Variable '", allxy[which(!varsExist)[1L]], "' not found."))
-    } else if (any(varsClass)) {
+    if (any(!exist)) {
+      stop(paste0("fireSense_FrequencyPredict> Variable '", allxy[which(!exist)[1L]], "' not found."))
+    } else if (any(class)) {
       stop("fireSense_FrequencyPredict> Data objects are not of the same class (e.g. data.frames).")
     } else {
-      stop(paste0("fireSense_FrequencyPredict> Variable '", allxy[which(!varsClass)[1L]], "' is not of a data.frame or a RasterLayer."))
+      stop(paste0("fireSense_FrequencyPredict> Variable '", allxy[which(!class)[1L]], "' is not of a data.frame or a RasterLayer."))
     }
   }
   
