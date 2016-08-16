@@ -17,11 +17,11 @@ defineModule(sim, list(
   reqdPkgs = list("magrittr", "raster"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", default, min, max, "parameter description")),
-    defineParameter("sf", "numeric", 1, 
+    defineParameter("f", "numeric", 1, 
       desc = "numeric. Rescale predicted rates of fire count at any given temporal and spatial
-              resolutions by a factor sf = new_res / old_res. sf describes the ratio between the
-              scale of data aggregation at which the statistical model was fitted to the scale at
-              which predictions should be made."),
+              resolutions by a factor f = new_res / old_res. f is the ratio between the scale of
+              data aggregation at which the statistical model was fitted to the scale at which
+              predictions should be made."),
     defineParameter(name = "data", class = "character", default = NULL,
       desc = "optional. A character vector indicating the names of objects present in the simList
               environment, in which to look for variables with which to predict. Objects can be
@@ -109,7 +109,8 @@ fireSense_FrequencyPredictRun <- function(sim) {
         model %>%
           model.matrix(c(data, sim$fireSense_FrequencyFitted$knots)) %>%
           `%*%` (sim$fireSense_FrequencyFitted$coef) %>%
-          drop %>% sim$fireSense_FrequencyFitted$family$linkinv(.)
+          drop %>% sim$fireSense_FrequencyFitted$family$linkinv(.) %>%
+          `*` (p(sim)$f)
         
       }
       
@@ -155,10 +156,11 @@ fireSense_FrequencyPredictRun <- function(sim) {
 
   if (all(unlist(lapply(allxy, function(x) is.vector(envData[[x]]))))) {
     
-    sim$fireSense_FrequencyPredict <- formula %>%
+    sim$fireSense_FrequencyPredict <- (formula %>%
       model.matrix(envData) %>%
       `%*%` (sim$fireSense_FrequencyFitted$coef) %>%
-      drop %>% sim$fireSense_FrequencyFitted$family$linkinv(.)
+      drop %>% sim$fireSense_FrequencyFitted$family$linkinv(.)) %>%
+      `*` (p(sim)$f)
 
   } else if (all(unlist(lapply(allxy, function(x) is(envData[[x]], "RasterLayer"))))) {
 
