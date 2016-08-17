@@ -2,7 +2,9 @@
 title: "fireSense_FrequencyPredict"
 author: "Module Author"
 date: "August 2016"
-output: pdf_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 # Overview
@@ -12,7 +14,7 @@ Predict fire frequencies from a model fitted using the fireSense_FrequencyFit mo
 ```{r download module, eval = FALSE, echo = TRUE}
 library(SpaDES)
 
-moduleName <- "fireSense_FrequencyFit"
+moduleName <- "fireSense_FrequencyPredict"
 
 workingDirectory <- tempdir() # Change this to a place you would like to put the model, if desired
 
@@ -75,15 +77,21 @@ Events are scheduled as follows:
 - Make predictions
 
 ## Saving
-TODO: Write what is saved. (there is currently no save, but this may change in the future)
+TODO: Write what is saved. (there is currently nothing saved, but this may change in the future)
 
 # Data dependencies
 
 ## Input data
-An object of class fireSense_FrequencyFit, i.e. created with the fireSense_FrequencyFit module.
+- An or several objects of class data.frame in which to look for variables with which to predict.
+- An object of class fireSense_FrequencyFit, i.e. created with the fireSense_FrequencyFit module.
 
 ## Output data
-TODO: Description of the module outputs (depends on saving).
+An object whose class depends on those in input:
+
+|Input object class|Output object class|
+|---|---|
+|data.frame|vector|
+|raster|raster|
 
 # Links to other modules
 Predictions made using this module can be used to feed the ignition component of a landscape fire model (e.g fireSense).
