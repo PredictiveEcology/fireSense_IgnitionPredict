@@ -3,8 +3,8 @@
 defineModule(sim, list(
   name = "fireSense_FrequencyPredict",
   description = "Predict fire frequencies from a model fitted using fireSense_FrequencyFit.
-                 These can be used to feed the ignition component of a fire simulation 
-                 model (e.g fireSense).",
+                 These can be used to feed the ignition component of a fire landscape model
+                 (e.g fireSense).",
   keywords = c("fire frequency", "additive property", "poisson", "negative binomial", "fireSense"),
   authors = c(person("Jean", "Marchal", email = "jean.d.marchal@gmail.com", role = c("aut", "cre"))),
   childModules = character(),
