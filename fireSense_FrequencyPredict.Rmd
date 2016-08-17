@@ -1,78 +1,90 @@
 ---
 title: "fireSense_FrequencyPredict"
 author: "Module Author"
-date: "05 August 2016"
+date: "August 2016"
 output: pdf_document
 ---
 
 # Overview
+Predict fire frequencies from a model fitted using the fireSense_FrequencyFit module. These can be used to feed the ignition component of a landscape fire model (e.g fireSense).
 
-Provide an overview of what the module does / how to use the module.
+# Download the module
+```{r download module, eval = FALSE, echo = TRUE}
+library(SpaDES)
 
-Module documentation should be written so that others can use your module.
-This is a template for module documentation, and should be changed to reflect your module.
+moduleName <- "fireSense_FrequencyFit"
 
-## RMarkdown
+workingDirectory <- tempdir() # Change this to a place you would like to put the model, if desired
 
-RMarkdown syntax allows R code, outputs, and figures to be rendered in the documentation.
-
-For help writing in RMarkdown, see http://rmarkdown.rstudio.com/.
+downloadModule(moduleName, path = workingDirectory)
+```
 
 # Usage
-
-```{r module_usage}
+```{r module_usage, eval = FALSE}
 library(SpaDES)
 library(magrittr)
+library(raster)
 
-inputDir <- file.path(tempdir(), "inputs") %>% checkPath(create = TRUE)
-outputDir <- file.path(tempdir(), "outputs")
-times <- list(start = 0, end = 10)
+set.seed(1)
+
+## Make data
+df <- data.frame(
+  weather2 = rnorm(1000, 150, 30),
+  fireFrequency = rpois(1000, .5)
+)
+
+## Make a typical output of fireSense_FrequencyFit
+fireSense_FrequencyFitted <- list(
+  formula = formula(fireFrequency ~ weather),
+  family = poisson(),
+  coef = setNames(0.01, "weather")
+)
+class(fireSense_FrequencyFit) <- "fireSense_FrequencyFit"
+
+#outputDir <- file.path(tempdir(), "outputs")
+times <- list(start = 1, end = 1)
 parameters <- list(
-  .globals = list(burnStats = "nPixelsBurned"),
-  #.progress = list(type = "text", interval = 1), # for a progress bar
-  ## If there are further modules, each can have its own set of parameters:
-  #module1 = list(param1 = value1, param2 = value2),
-  #module2 = list(param1 = value1, param2 = value2)
-)
-modules <- list("fireSense_FrequencyPredict")
-objects <- list()
-paths <- list(
-  cachePath = file.path(outputDir, "cache"),
-  modulePath = file.path(".."),
-  inputPath = inputDir,
-  outputPath = outputDir
+  fireSense_FrequencyFit = list(
+    f = 10, # Rescale predicted rates of fire count at any given temporal and spatial resolutions by a factor f = new_res / old_res
+    mapping = list(weather2 = "weather"), # One can use the mapping arg to map variable's names in the data to those in the formula of the fitted object.
+                                          # Here weather (formula) is mapped to weather2 (data).
+    data = "df"
+  )
 )
 
-mySim <- simInit(times = times, params = parameters, modules = modules,
-                 objects = objects, paths = paths)
+modules <- list("fireSense_FrequencyPredict")
+objects <- c("df", "fireSense_FrequencyFitted")
+paths <- list(
+  # cachePath = file.path(outputDir, "cache"),
+  modulePath = file.path("~/Documents/GitHub/McIntire-lab/modulesPrivate/") ## TODO: change this to tempdir()
+  # inputPath = inputDir,
+  # outputPath = outputDir
+)
+ 
+mySim <- simInit(times = times, params = parameters, modules = modules, objects = objects, paths = paths)
+
+## TODO: raster layer/stack
 
 spades(mySim)
 ```
 
 # Events
+Events are scheduled as follows:
 
-Describe what happens for each event type.
-
-## Plotting
-
-Write what is plotted.
+- Module initiation
+- Make predictions
 
 ## Saving
-
-Write what is saved.
+TODO: Write what is saved. (there is currently no save, but this may change in the future)
 
 # Data dependencies
 
 ## Input data
-
-How to obtain input data, and a description of the data required by the module.
-If `sourceURL` is specified, `downloadData("fireSense_FrequencyPredict", "path/to/modules/dir")` may be sufficient.
+An object of class fireSense_FrequencyFit, i.e. created with the fireSense_FrequencyFit module.
 
 ## Output data
-
-Description of the module outputs.
+TODO: Description of the module outputs (depends on saving).
 
 # Links to other modules
-
-Describe any anticipated linkages to other modules.
+Predictions made using this module can be used to feed the ignition component of a landscape fire model (e.g fireSense).
 

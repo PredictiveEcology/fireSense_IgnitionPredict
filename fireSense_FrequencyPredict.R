@@ -2,9 +2,9 @@
 # are put into the simList. To use objects and functions, use sim$xxx.
 defineModule(sim, list(
   name = "fireSense_FrequencyPredict",
-  description = "Predict fire frequencies from a model fitted using fireSense_FrequencyFit.
-                 These can be used to feed the ignition component of a fire landscape model
-                 (e.g fireSense).",
+  description = "Predict fire frequencies from a model fitted using the fireSense_FrequencyFit
+                 module. These can be used to feed the ignition component of a landscape fire
+                 model (e.g fireSense).",
   keywords = c("fire frequency", "additive property", "poisson", "negative binomial", "fireSense"),
   authors = c(person("Jean", "Marchal", email = "jean.d.marchal@gmail.com", role = c("aut", "cre"))),
   childModules = character(),
@@ -18,7 +18,7 @@ defineModule(sim, list(
   parameters = rbind(
     #defineParameter("paramName", "paramClass", default, min, max, "parameter description")),
     defineParameter("f", "numeric", 1, 
-      desc = "numeric. Rescale predicted rates of fire count at any given temporal and spatial
+      desc = "numeric. Rescale predicted rates of fire counts at any given temporal and spatial
               resolutions by a factor f = new_res / old_res. f is the ratio between the scale of
               data aggregation at which the statistical model was fitted to the scale at which
               predictions should be made."),
@@ -133,7 +133,7 @@ fireSense_FrequencyPredictRun <- function(sim) {
     for (i in 1:length(p(sim)$mapping)) {
       
       attr(terms, "term.labels") <- gsub(pattern = names(p(sim)$mapping[i]),
-                                         replacement = p(sim)$mapping[i], x = attr(terms, "term.labels"))
+                                         replacement = p(sim)$mapping[[i]], x = attr(terms, "term.labels"))
 
     }
     
