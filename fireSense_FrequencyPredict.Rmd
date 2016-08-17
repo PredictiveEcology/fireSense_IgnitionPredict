@@ -1,6 +1,6 @@
 ---
 title: "fireSense_FrequencyPredict"
-author: "Module Author"
+author: "Jean Marchal"
 date: "August 2016"
 output:
   html_document: default
