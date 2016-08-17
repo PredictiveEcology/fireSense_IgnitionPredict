@@ -1,7 +1,7 @@
 library(SpaDES)
 
 ## data.frame
-  # Poisson
+  ## Poisson
     # mySim <- simInit(
     #   times = list(start = 1, end = 1, timeunit = "year"),
     #   modules = list("fireSense_FrequencyPredict"),
@@ -16,18 +16,18 @@ library(SpaDES)
     # )
 
   ## Negative binomial
-    # mySim <- simInit(
-    #   times = list(start = 1, end = 1, timeunit = "year"),
-    #   modules = list("fireSense_FrequencyPredict"),
-    #   paths = list(modulePath = " # replace with empty string instead"),
-    #   params = list(fireSense_FrequencyPredict = list(data = "dataFireSense_Frequency")),
-    #   inputs = data.frame(
-    #     files = c("Z:/fireSense_FrequencyFitted_NB.rds", "Z:/dataFireSense_Frequency.rds"),
-    #     functions = c("readRDS", "readRDS"),
-    #     package = c("base", "base"),
-    #     objectName = c("fireSense_FrequencyFitted", NA),
-    #     stringsAsFactors = FALSE)
-    # )
+    mySim <- simInit(
+      times = list(start = 1, end = 1, timeunit = "year"),
+      modules = list("fireSense_FrequencyPredict"),
+      paths = list(modulePath = " # replace with empty string instead"),
+      params = list(fireSense_FrequencyPredict = list(data = "dataFireSense_Frequency")),
+      inputs = data.frame(
+        files = c("Z:/fireSense_FrequencyFitted_NB.rds", "Z:/dataFireSense_Frequency.rds"),
+        functions = c("readRDS", "readRDS"),
+        package = c("base", "base"),
+        objectName = c("fireSense_FrequencyFitted", NA),
+        stringsAsFactors = FALSE)
+    )
 
 ## RasterLayer
   ## 1 var
@@ -45,17 +45,17 @@ library(SpaDES)
     # )
 
   ## 6 var
-    mySim <- simInit(
-      times = list(start = 1, end = 1, timeunit = "year"),
-      modules = list("fireSense_FrequencyPredict"),
-      paths = list(modulePath = " # replace with empty string instead"),
-      inputs = data.frame(
-        files = c("Z:/fireSense_FrequencyFitted_NB.rds", "Z:/MDC_JUN.tif", "Z:/HW.tif", "Z:/HW.tif", "Z:/HW.tif", "Z:/HW.tif"),
-        functions = c("readRDS", "raster", "raster", "raster", "raster", "raster"),
-        package = c("base", "raster", "raster", "raster", "raster", "raster"),
-        objectName = c("fireSense_FrequencyFitted", "MDC_JUL", "HW", "CN", "D", "O"),
-        stringsAsFactors = FALSE)
-    )
+    # mySim <- simInit(
+    #   times = list(start = 1, end = 1, timeunit = "year"),
+    #   modules = list("fireSense_FrequencyPredict"),
+    #   paths = list(modulePath = " # replace with empty string instead"),
+    #   inputs = data.frame(
+    #     files = c("Z:/fireSense_FrequencyFitted_NB.rds", "Z:/MDC_JUN.tif", "Z:/HW.tif", "Z:/HW.tif", "Z:/HW.tif", "Z:/HW.tif"),
+    #     functions = c("readRDS", "raster", "raster", "raster", "raster", "raster"),
+    #     package = c("base", "raster", "raster", "raster", "raster", "raster"),
+    #     objectName = c("fireSense_FrequencyFitted", "MDC_JUL", "HW", "CN", "D", "O"),
+    #     stringsAsFactors = FALSE)
+    # )
 
 spades(mySim, debug = FALSE)
 
