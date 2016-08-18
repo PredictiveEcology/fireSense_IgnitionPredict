@@ -16,7 +16,7 @@ library(SpaDES)
 
 moduleName <- "fireSense_FrequencyPredict"
 
-workingDirectory <- tempdir() # Change this to a place you would like to put the model, if desired
+workingDirectory <- tempdir() # Change this to a place you would like to put the model, if desired.
 
 downloadModule(moduleName, path = workingDirectory)
 ```
@@ -58,8 +58,9 @@ class(fireSense_FrequencyFit) <- "fireSense_FrequencyFit"
 times <- list(start = 1, end = 1)
 parameters <- list(
   fireSense_FrequencyFit = list(
-    f = 10, # Rescale predicted rates of fire count at any given temporal and spatial resolutions by a factor f = new_res / old_res
-    mapping = list(weather2 = "weather"), # One can use the mapping arg to map variable's names in the data to those in the formula of the fitted object.
+    f = 10,
+    mapping = list(weather2 = "weather"), # One can use mapping to map variables in data to those
+                                          # within the formula of the fitted object.
                                           # Here weather (formula) is mapped to weather2 (data).
     data = "df"
   )
@@ -76,7 +77,7 @@ paths <- list(
  
 mySim <- simInit(times = times, params = parameters, modules = modules, objects = objects, paths = paths)
 
-## TODO: raster layer/stack
+## TODO: raster layer
 
 spades(mySim)
 ```
@@ -91,10 +92,9 @@ Events are scheduled as follows:
 TODO: Write what is saved. (there is currently nothing saved, but this may change in the future)
 
 # Data dependencies
-
 ## Input data
-- An or several objects of class data.frame in which to look for variables with which to predict.
 - An object of class fireSense_FrequencyFit, i.e. created with the fireSense_FrequencyFit module.
+- An or several objects of class data.frame in which to look for variables with which to predict.
 
 ## Output data
 An object whose class depends on those in input:
