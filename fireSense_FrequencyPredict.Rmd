@@ -55,7 +55,7 @@ parameters <- list(
 )
 
 modules <- list("fireSense_FrequencyPredict")
-objects <- c("df", "fireSense_FrequencyFitted")
+objects <- c("df", "fireSense_FrequencyFitted") # Pass objects found in the global environment to the simList environment.
 paths <- list(
   # cachePath = file.path(outputDir, "cache"),
   modulePath = file.path("~/Documents/GitHub/McIntire-lab/modulesPrivate/") ## TODO: change this to tempdir()
@@ -88,10 +88,11 @@ TODO: Write what is saved. (there is currently nothing saved, but this may chang
 ## Output data
 An object whose class depends on those in input:
 
-|Input object class|Output object class|
-|---|---|
-|data.frame|vector|
-|raster|raster|
+Input object class | Output object class
+:-:|:-:
+data.frame | vector
+raster | raster
+||
 
 # Links to other modules
 Predictions made using this module can be used to feed the ignition component of a landscape fire model (e.g fireSense).
