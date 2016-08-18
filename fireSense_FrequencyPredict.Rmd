@@ -22,6 +22,17 @@ downloadModule(moduleName, path = workingDirectory)
 ```
 
 # Usage
+## Module parameters
+Name|Default|Description
+----|-------|---------------------------------------------------------------------
+f|1|numeric. Rescale predicted rates of fire counts at any given temporal and spatial resolutions by a factor f = new_res / old_res. f is the ratio between the scale of data aggregation at which the statistical model was fitted to the scale at which predictions should be made.
+data|NULL|optional. A character vector indicating the names of objects in the simList environment in which to look for variables in the model. Data objects should be data.frames. If omitted, or if variables are not found in data objects, variables are searched in the simList environment.
+mapping|NULL|optional. Named character vector or list mapping some or all variables in the model to those in data objects.
+initialRunTime|start(sim)|optional. Simulation time at which to start this module. Defaults to simulation start time.
+intervalRunModule|NA|optional. Interval in simulation time units between two runs of this module.
+|||
+
+## Usage example
 ```{r module_usage, eval = FALSE}
 library(SpaDES)
 library(magrittr)
