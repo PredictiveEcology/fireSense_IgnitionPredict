@@ -2,9 +2,9 @@
 # are put into the simList. To use objects and functions, use sim$xxx.
 defineModule(sim, list(
   name = "fireSense_FrequencyPredict",
-  description = "Predict fire frequencies from a model fitted using the fireSense_FrequencyFit
-                 module. These can be used to feed the ignition component of a landscape fire
-                 model (e.g fireSense).",
+  description = "Predict rates of fire frequency from a model fitted using the
+                 fireSense_FrequencyFit module. These can be used to feed the
+                 ignition component of a landscape fire model (e.g fireSense).",
   keywords = c("fire frequency", "additive property", "poisson", "negative binomial", "fireSense"),
   authors = c(person("Jean", "Marchal", email = "jean.d.marchal@gmail.com", role = c("aut", "cre"))),
   childModules = character(),

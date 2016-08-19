@@ -8,7 +8,7 @@ output:
 ---
 
 # Overview
-Predict fire frequencies from a model fitted using the fireSense_FrequencyFit module. These can be used to feed the ignition component of a landscape fire model (e.g fireSense).
+Predict rates of fire frequency from a model fitted using the fireSense_FrequencyFit module. These can be used to feed the ignition component of a landscape fire model (e.g fireSense).
 
 # Download the module
 ```{r download module, eval = FALSE, echo = TRUE}
