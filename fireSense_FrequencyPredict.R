@@ -122,7 +122,7 @@ fireSense_FrequencyPredictRun <- function(sim) {
   list2env(as.list(envir(sim)), envir = envData)
   envData$pw <- pw
   
-  if (!is.null(p(sim)$data))
+  if (!is.null(p(sim)$data)) ## Handling data arg
     lapply(p(sim)$data, function(x, envData) if (is.list(sim[[x]])) list2env(sim[[x]], envir = envData), envData = envData)
 
   terms <- delete.response(terms.formula(sim$fireSense_FrequencyFitted$formula))
