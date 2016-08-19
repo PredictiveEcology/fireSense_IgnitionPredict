@@ -42,15 +42,15 @@ library(raster)
 
 set.seed(1)
 
-## Make data
-df <- data.frame(
+# Create random weather and fire frequency data
+dataObject <- data.frame(
   weather2 = rnorm(1000, 150, 30),
   fireFrequency = rpois(1000, .5)
 )
 
-## Make a typical output of fireSense_FrequencyFit
+# Create a typical output of fireSense_FrequencyFit
 fireSense_FrequencyFitted <- list(
-  formula = formula(fireFrequency ~ weather),
+  formula = fireFrequency ~ weather,
   family = poisson(),
   coef = setNames(0.01, "weather")
 )
@@ -63,13 +63,13 @@ parameters <- list(
     f = 10,
     mapping = list(weather2 = "weather"), # One can use mapping to map variables in data to those
                                           # within the formula of the fitted object.
-                                          # Here weather (formula) is mapped to weather2 (data).
-    data = "df"
+                                          # Here weather2 (data) is mapped to weather (formula).
+    data = "dataObject"
   )
 )
 
 modules <- list("fireSense_FrequencyPredict")
-objects <- c("df", "fireSense_FrequencyFitted") # Pass objects found in the global environment to the simList environment.
+objects <- c("dataObject", "fireSense_FrequencyFitted") # Pass objects found in the global environment to the simList environment
 paths <- list(
   # cachePath = file.path(outputDir, "cache"),
   modulePath = file.path("~/Documents/GitHub/McIntire-lab/modulesPrivate/") ## TODO: change this to tempdir()
@@ -108,5 +108,5 @@ raster | raster
 ||
 
 # Links to other modules
-Predictions made using this module can be used to feed the ignition component of a landscape fire model (e.g fireSense).
+Predictions made with this module can be used to feed the ignition component of a landscape fire model (e.g fireSense).
 
