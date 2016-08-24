@@ -43,27 +43,34 @@ library(raster)
 set.seed(1)
 
 # Create random weather and fire frequency data
-dataObject <- data.frame(
-  weather2 = rnorm(1000, 150, 30),
-  fireFrequency = rpois(1000, .5)
-)
+  # data.frame
+  dataObject <- data.frame(
+    weather = rnorm(1000, 150, 30),
+    fireFrequency = rpois(1000, .5)
+  )
 
+  # raster
+  nx <- ny <- 100L
+  dataObject <- raster(nrows = ny, ncols = nx, xmn = -nx/2, xmx = nx/2, ymn = -ny/2, ymx = ny/2) %>%
+    gaussMap(scale = 300, var = 0.03, speedup = nx/5e2, inMemory = TRUE) %>%
+    list(weather = .)
+  
 # Create a typical output of fireSense_FrequencyFit
 fireSense_FrequencyFitted <- list(
-  formula = fireFrequency ~ weather,
+  formula = fireFrequency ~ weather2,
   family = poisson(),
-  coef = setNames(0.01, "weather")
+  coef = setNames(c(0.1, 0.01), c("intercept", "weather2"))
 )
-class(fireSense_FrequencyFit) <- "fireSense_FrequencyFit"
+class(fireSense_FrequencyFitted) <- "fireSense_FrequencyFit"
 
 #outputDir <- file.path(tempdir(), "outputs")
 times <- list(start = 1, end = 1, timeunit = "year")
 parameters <- list(
   fireSense_FrequencyFit = list(
     f = 10,
-    mapping = list(weather2 = "weather"), # One can use mapping to map variables in data to those
-                                          # within the formula of the fitted object.
-                                          # Here weather2 (data) is mapped to weather (formula).
+    mapping = list(weather2 = "weather"), # One can use mapping to map variables in the 
+                                          # formula of the fitted object to those in data.
+                                          # Here weather2 (formula) is mapped to weather (data).
     data = "dataObject"
   )
 )
@@ -78,8 +85,6 @@ paths <- list(
 )
  
 mySim <- simInit(times = times, params = parameters, modules = modules, objects = objects, paths = paths)
-
-## TODO: raster layer
 
 spades(mySim)
 ```
