@@ -66,7 +66,7 @@ class(fireSense_FrequencyFitted) <- "fireSense_FrequencyFit"
 #outputDir <- file.path(tempdir(), "outputs")
 times <- list(start = 1, end = 1, timeunit = "year")
 parameters <- list(
-  fireSense_FrequencyFit = list(
+  fireSense_FrequencyPredict = list(
     f = 10,
     mapping = list(weather2 = "weather"), # One can use mapping to map variables in the 
                                           # formula of the fitted object to those in data.

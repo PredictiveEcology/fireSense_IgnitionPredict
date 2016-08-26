@@ -138,7 +138,7 @@ fireSense_FrequencyPredictRun <- function(sim) {
     }
     
   }
-  
+
   formula <- reformulate(attr(terms, "term.labels"), intercept = attr(terms, "intercept"))
   allxy <- all.vars(formula)
 
