@@ -1,14 +1,14 @@
 ---
 title: "fireSense_FrequencyPredict"
 author: "Jean Marchal"
-date: "August 2016"
+date: "July 2017"
 output:
   html_document: default
   pdf_document: default
 ---
 
 # Overview
-Predict rates of fire frequency from a model fitted using the fireSense_FrequencyFit module. These can be used to feed the ignition component of a landscape fire model (e.g fireSense).
+Predicts fire frequency or rates of fire counts from a model fitted using the fireSense_FrequencyFit module. These can be used to feed the ignition component of a landscape fire model (e.g fireSense).
 
 # Download the module
 ```{r download module, eval = FALSE, echo = TRUE}
@@ -16,7 +16,7 @@ library(SpaDES)
 
 moduleName <- "fireSense_FrequencyPredict"
 
-workingDirectory <- tempdir() # Change this to a place you would like to put the module, if desired.
+workingDirectory <- tempdir() # Location where the module will be downloaded
 
 downloadModule(moduleName, path = workingDirectory)
 ```
@@ -24,12 +24,12 @@ downloadModule(moduleName, path = workingDirectory)
 # Usage
 ## Module parameters
 Name|Default|Description
-----|:-------:|---------------------------------------------------------------------
-`f`|`1`|`numeric`. Rescale predicted rates of fire counts at any given temporal and spatial resolutions by a factor `f = new_res / old_res`. `f` is the ratio between the scale of data aggregation at which the statistical model was fitted to the scale at which predictions should be made.
-`data`|`NULL`|optional. A `character vector` indicating the names of objects in the `simList` environment in which to look for variables in the model. Data objects should be `data.frames`. If omitted, or if variables are not found in data objects, variables are searched in the `simList` environment.
-`mapping`|`NULL`|optional. Named `character vector` or `list` mapping some or all variables in the model to those in data objects.
-`initialRunTime`|`start(sim)`|optional. Simulation time at which to start this module. Defaults to simulation start time.
-`intervalRunModule`|`NA`|optional. Interval in simulation time units between two runs of this module.
+----|:-------|---------------------------------------------------------------------
+`f`|`1`|Rescale predicted rates of fire counts at any given temporal and spatial resolutions by a factor $f = new\_res / old\_res$. `f` is the ratio between the aggregation scale of data to which the statistical model has been fitted and the scale at which predictions are to be made.
+`data`|`"dataFireSense_FrequencyPredict"`|a character vector indicating the names of objects in the `simList` environment in which to look for variables in the model. `data` objects should be data.frames or named lists of RasterLayers. If omitted, or if variables are not found in `data` objects, variables are searched in the `simList` environment.
+`mapping`|`NULL`|optional named vector or list of character strings mapping one or more variables in the model formula to those in `data` objects.
+`initialRunTime`|`start(simList)`|when to start this module? By default, the start time of the simulation.
+`intervalRunModule`|`NA`|optional. Interval between two runs of this module, expressed in units of simulation time.
 |||
 
 ## Usage example
@@ -100,15 +100,15 @@ TODO: Write what is saved. (there is currently nothing saved, but this may chang
 
 # Data dependencies
 ## Input data
-- An object of class `fireSense_FrequencyFit`, i.e. created with the fireSense_FrequencyFit module.
-- An or several objects of class `data.frame` in which to look for variables with which to predict.
+- **fireSense_FrequencyFitted**: an object of class `fireSense_FrequencyFit` created with the fireSense_FrequencyFit module.
+- **dataFireSense_FrequencyPredict**: one or more data.frames or named lists of RasterLayers in which to look for variables with which to predict.
 
 ## Output data
 An object whose class depends on those in input:
 
 Input object class | Output object class
 :-:|:-:
-`data.frame` | `numeric`
+`data.frame` | `Numeric vector`
 `RasterLayer` | `RasterLayer`
 ||
 
