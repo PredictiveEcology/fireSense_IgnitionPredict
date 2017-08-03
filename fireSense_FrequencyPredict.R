@@ -17,26 +17,33 @@ defineModule(sim, list(
   reqdPkgs = list("magrittr", "raster"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", default, min, max, "parameter description")),
-    defineParameter("f", "numeric", 1, 
-                    desc = "Rescale predicted rates of fire counts at any given 
-                            temporal and spatial resolutions by a factor 
-                            `f = new_res / old_res`. `f` is the ratio between 
-                            the aggregation scale of data to which the
-                            statistical model has been fitted and the scale at
-                            which predictions are to be made."),
-    defineParameter(name = "data", class = "character", default = "dataFireSense_FrequencyPredict",
+    defineParameter(name = "modelName", class = "character", 
+                    default = "fireSense_FrequencyFitted",
+                    desc = "name of the object of class fireSense_FrequencyFit
+                            describing the statistical model used for
+                            predictions."),
+    defineParameter(name = "data", class = "character",
+                    default = "dataFireSense_FrequencyPredict",
                     desc = "a character vector indicating the names of objects 
                             in the `simList` environment in which to look for 
-                            variables in the model. `data` objects should be
-                            data.frames or named lists of RasterLayers. If
-                            omitted, or if variables are not found in `data` 
-                            objects, variables are searched in  the `simList`
-                            environment."),
+                            variables present in the model formula. `data`
+                            objects can be data.frames, RasterStacks or
+                            RasterLayers. However, data.frames cannot be mixed
+                            with objects of other classes. If variables are not
+                            found in `data` objects, they are searched in  the
+                            `simList` environment."),
     defineParameter(name = "mapping", class = "character, list", default = NULL,
                     desc = "optional named vector or list of character strings
                             mapping one or more variables in the model formula
-                            to those in data objects."),
-    defineParameter(name = "initialRunTime", class = "numeric", default = start(sim),
+                            to those in `data` objects."),
+    defineParameter("f", "numeric", 1, 
+                    desc = "rescale predicted rates of fire counts at any given 
+                            temporal and spatial resolutions by a factor 
+                            `f = new_res / old_res`. `f` is the ratio between 
+                            the data aggregation scale used for model fitting
+                            and the scale at which predictions are to be made."),
+    defineParameter(name = "initialRunTime", class = "numeric",
+                    default = start(sim),
                     desc = "when to start this module? By default, the start 
                             time of the simulation."),
     defineParameter(name = "intervalRunModule", class = "numeric", default = NA, 
@@ -52,15 +59,15 @@ defineModule(sim, list(
     ),
     expectsInput(
       objectName = "dataFireSense_FrequencyPredict",
-      objectClass = "data.frame, raster",
+      objectClass = "data.frame, RasterLayer, RasterStack",
       sourceURL = NA_character_,
-      desc = "One or more data.frames or named lists of RasterLayers in which to look for variables with which to predict."
+      desc = "One or more objects of class data.frame, RasterLayer or RasterStack in which to look for variables with which to predict."
     )
   ),
   outputObjects = createsOutput(
-    objectName = NA_character_,
+    objectName = "fireSense_FrequencyPredicted",
     objectClass = NA_character_,
-    desc = "An object whose class depends on that of the inputs, could be a raster or a vector of type numeric."
+    desc = "An object whose class depends on that of the inputs, could be a RasterLayer or a vector of type numeric."
   )
 ))
 
@@ -119,9 +126,9 @@ fireSense_FrequencyPredictRun <- function(sim) {
       fireSense_FrequencyPredictRaster <- function(model, data, sim) {
   
         model %>%
-          model.matrix(c(data, sim[[P(sim)$model]]$knots)) %>%
-          `%*%` (sim[[P(sim)$model]]$coef) %>%
-          drop %>% sim[[P(sim)$model]]$family$linkinv(.) %>%
+          model.matrix(c(data, sim[[P(sim)$modelName]]$knots)) %>%
+          `%*%` (sim[[P(sim)$modelName]]$coef) %>%
+          drop %>% sim[[P(sim)$modelName]]$family$linkinv(.) %>%
           `*` (P(sim)$f)
         
       }
@@ -129,30 +136,38 @@ fireSense_FrequencyPredictRun <- function(sim) {
     ## Handling piecewise terms in a formula
     pw <- function(v, k) pmax(v - k, 0)
 
+  # Create a container to hold the data
   envData <- new.env(parent = envir(sim))
   on.exit(rm(envData))
 
-  # Load data in the container
+  # Load inputs in the data container
   list2env(as.list(envir(sim)), envir = envData)
   
-  lapply(P(sim)$data, function(x, envData) {
+  for (x in P(sim)$data) {
     
     if (!is.null(sim[[x]])) {
       
-      if (is.list(sim[[x]]) && !is.null(names(sim[[x]]))) {
+      if (is.data.frame(sim[[x]])) {
         
         list2env(sim[[x]], envir = envData)
         
-      } else stop(paste0(moduleName, "> '", x, "' is not a data.frame or a named list."))
-      
+      } else if (is(sim[[x]], "RasterStack")) {
+        
+        list2env(setNames(unstack(sim[[x]]), names(sim[[x]])), envir = envData)
+        
+      } else if (is(sim[[x]], "RasterLayer")) {
+        
+        # Do nothing
+        
+      } else stop(paste0(moduleName, "> '", x, "' is not a data.frame, a RasterLayer or a RasterStack."))
     }
     
-  }, envData = envData)
+  }
   
   # Define pw() within the data container
   envData$pw <- pw
 
-  terms <- delete.response(terms.formula(sim[[P(sim)$model]]$formula))
+  terms <- delete.response(terms.formula(sim[[P(sim)$modelName]]$formula))
 
   ## Mapping variables names to data
   if (!is.null(P(sim)$mapping)) {
@@ -172,10 +187,10 @@ fireSense_FrequencyPredictRun <- function(sim) {
   formula <- reformulate(attr(terms, "term.labels"), intercept = attr(terms, "intercept"))
   allxy <- all.vars(formula)
 
-  if (!is.null(sim[[P(sim)$model]]$knots)) {
+  if (!is.null(sim[[P(sim)$modelName]]$knots)) {
     
-    list2env(as.list(sim[[P(sim)$model]]$knots), envir = envData)
-    kNames <- names(sim[[P(sim)$model]]$knots)
+    list2env(as.list(sim[[P(sim)$modelName]]$knots), envir = envData)
+    kNames <- names(sim[[P(sim)$modelName]]$knots)
     allxy <- allxy[!allxy %in% kNames]
     
   } else {
@@ -186,28 +201,33 @@ fireSense_FrequencyPredictRun <- function(sim) {
 
   if (all(unlist(lapply(allxy, function(x) is.vector(envData[[x]]))))) {
     
-    sim$fireSense_FrequencyPredict <- (formula %>%
+    sim$fireSense_FrequencyPredicted <- (formula %>%
       model.matrix(envData) %>%
-      `%*%` (sim[[P(sim)$model]]$coef) %>%
-      drop %>% sim[[P(sim)$model]]$family$linkinv(.)) %>%
+      `%*%` (sim[[P(sim)$modelName]]$coef) %>%
+      drop %>% sim[[P(sim)$modelName]]$family$linkinv(.)) %>%
       `*` (P(sim)$f)
 
   } else if (all(unlist(lapply(allxy, function(x) is(envData[[x]], "RasterLayer"))))) {
 
-    sim$fireSense_FrequencyPredict <- mget(allxy, envir = envData, inherits = FALSE) %>%
+    sim$fireSense_FrequencyPredicted <- mget(allxy, envir = envData, inherits = FALSE) %>%
       stack %>% predict(model = formula, fun = fireSense_FrequencyPredictRaster, na.rm = TRUE, sim = sim)
 
   } else {
     
-    exist <- allxy %in% ls(envData)
-    class <- unlist(lapply(allxy, function(x) is.data.frame(envData[[x]]) || is(envData[[x]], "RasterLayer")))
-
-    if (any(!exist)) {
-      stop(paste0(moduleName, "> Variable '", allxy[which(!exist)[1L]], "' not found."))
-    } else if (any(class)) {
-      stop(paste0(moduleName, "> Data objects are not of the same class (e.g. data.frames)."))
+    missing <- !allxy %in% ls(envData, all.names = TRUE)
+    
+    if (s <- sum(missing))
+      stop(paste0(moduleName, "> '", allxy[missing][1L], "'",
+                  if (s > 1) paste0(" (and ", s-1L, " other", if (s>2) "s", ")"),
+                  " not found in data objects nor in the simList environment."))
+    
+    badClass <- !unlist(lapply(allxy, function(x) is.vector(envData[[x]]) || is(envData[[x]], "RasterLayer")))
+    
+    if (any(badClass)) {
+      stop(paste0(moduleName, "> Data objects of class 'data.frame' cannot be mixed with objects of other classes."))
     } else {
-      stop(paste0(moduleName, "> Variable '", allxy[which(!class)[1L]], "' does not match a data.frame's column, a list component, or a RasterLayer."))
+      stop(paste0(moduleName, "> '", paste(allxy[which(!badClass)], collapse = "', '"),
+                  "' does not match a data.frame's column, a RasterLayer or a RasterStack's layer."))
     }
   }
   
