@@ -5,10 +5,10 @@ library(SpaDES)
 set.seed(1)
 
 # Define simulation parameters
-times <- list(start = 1, end = 1, timeunit = "year")
+times <- list(start = 1, end = 2, timeunit = "year")
 modules <- list("fireSense_FrequencyPredict")
 paths <- list(
-  modulePath = file.path("~/Documents/GitHub/McIntire-lab/modulesPrivate/") ## TODO: change this to /path/to/modules/
+  modulePath = "~/Documents/GitHub/McIntire-lab/modulesPrivate/"
 )
 
 # Create random weather and fire frequency data
@@ -20,7 +20,7 @@ paths <- list(
   
   # raster
   nx <- ny <- 100L
-  dataFireSense_FrequencyPredict <- 
+  dataFireSense_FrequencyPredict <-
     raster(nrows = ny, ncols = nx, xmn = -nx/2, xmx = nx/2, ymn = -ny/2, ymx = ny/2) %>%
     gaussMap(scale = 300, var = 0.03, speedup = nx/5e2, inMemory = TRUE) %>%
     stack %>% setNames("weather")
@@ -59,4 +59,4 @@ sim <- simInit(
 )
 
 sim <- spades(sim)
-sim$fireSense_FrequencyPredicted
+X11(); plot(sim$fireSense_FrequencyPredicted[[1]])
