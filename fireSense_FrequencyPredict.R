@@ -75,31 +75,28 @@ defineModule(sim, list(
 #   - type `init` is required for initialiazation
 
 doEvent.fireSense_FrequencyPredict = function(sim, eventTime, eventType, debug = FALSE) {
-  if (eventType == "init") {
-    sim <- sim$fireSense_FrequencyPredictInit(sim)
-
-  } else if (eventType == "run") {
+  switch(
+    eventType,
+    init = { sim <- sim$fireSense_FrequencyPredictInit(sim) }
+    run = { sim <- sim$fireSense_FrequencyPredictRun(sim) }
+    save = {
+      # ! ----- EDIT BELOW ----- ! #
+      # do stuff for this event
     
-    sim <- sim$fireSense_FrequencyPredictRun(sim)
-
-  } else if (eventType == "save") {
-    # ! ----- EDIT BELOW ----- ! #
-    # do stuff for this event
+      # e.g., call your custom functions/methods here
+      # you can define your own methods below this `doEvent` function
     
-    # e.g., call your custom functions/methods here
-    # you can define your own methods below this `doEvent` function
+      # schedule future event(s)
     
-    # schedule future event(s)
+      # e.g.,
+      # sim <- scheduleEvent(sim, time(sim) + increment, "fireSense_FrequencyPredict", "save")
     
-    # e.g.,
-    # sim <- scheduleEvent(sim, time(sim) + increment, "fireSense_FrequencyPredict", "save")
+      # ! ----- STOP EDITING ----- ! #
     
-    # ! ----- STOP EDITING ----- ! #
-    
-  } else {
+    },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
-  }
+  )
   invisible(sim)
 }
 
@@ -110,6 +107,8 @@ doEvent.fireSense_FrequencyPredict = function(sim, eventTime, eventType, debug =
 
 ### template initialization
 fireSense_FrequencyPredictInit <- function(sim) {
+
+  stopifnot(is(sim[[P(sim)$modelName]], "fireSense_FrequencyFit"))
 
   sim <- scheduleEvent(sim, eventTime = P(sim)$initialRunTime, current(sim)$moduleName, "run")
   sim
@@ -174,10 +173,10 @@ fireSense_FrequencyPredictRun <- function(sim) {
     
     for (i in 1:length(P(sim)$mapping)) {
       
-      attr(terms, "term.labels") <- gsub(
+      attr(terms, "term.labels") %<>% gsub(
         pattern = names(P(sim)$mapping[i]),
         replacement = P(sim)$mapping[[i]],
-        x = attr(terms, "term.labels")
+        x = .
       )
 
     }
@@ -221,7 +220,7 @@ fireSense_FrequencyPredictRun <- function(sim) {
                   if (s > 1) paste0(" (and ", s-1L, " other", if (s>2) "s", ")"),
                   " not found in data objects nor in the simList environment."))
     
-    badClass <- !unlist(lapply(allxy, function(x) is.vector(envData[[x]]) || is(envData[[x]], "RasterLayer")))
+    badClass <- unlist(lapply(allxy, function(x) is.vector(envData[[x]]) || is(envData[[x]], "RasterLayer")))
     
     if (any(badClass)) {
       stop(paste0(moduleName, "> Data objects of class 'data.frame' cannot be mixed with objects of other classes."))
@@ -234,7 +233,7 @@ fireSense_FrequencyPredictRun <- function(sim) {
   if (!is.na(P(sim)$intervalRunModule))
     sim <- scheduleEvent(sim, time(sim) + P(sim)$intervalRunModule, moduleName, "run")
   
-  sim
+  invisible(sim)
   
 }
 
