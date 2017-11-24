@@ -112,7 +112,6 @@ fireSense_FrequencyPredictInit <- function(sim)
 {
   sim <- scheduleEvent(sim, eventTime = P(sim)$initialRunTime, current(sim)$moduleName, "run")
   invisible(sim)
-  
 }
 
 
@@ -211,7 +210,6 @@ fireSense_FrequencyPredictRun <- function(sim)
       mget(allxy, envir = envData, inherits = FALSE) %>%
         stack %>% predict(model = formula, fun = fireSense_FrequencyPredictRaster, na.rm = TRUE, sim = sim)
     )
-    
   } 
   else 
   {
@@ -239,7 +237,6 @@ fireSense_FrequencyPredictRun <- function(sim)
     sim <- scheduleEvent(sim, currentTime + P(sim)$intervalRunModule, moduleName, "run")
   
   invisible(sim)
-  
 }
 
 
