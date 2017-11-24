@@ -200,8 +200,6 @@ fireSense_FrequencyPredictRun <- function(sim)
     kNames <- NULL
     
   }
-  
-  browser()
 
   if (all(unlist(lapply(allxy, function(x) is.vector(envData[[x]]))))) {
     
