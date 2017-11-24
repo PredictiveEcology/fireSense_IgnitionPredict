@@ -107,18 +107,18 @@ doEvent.fireSense_FrequencyPredict = function(sim, eventTime, eventType, debug =
 #   - keep event functions short and clean, modularize by calling subroutines from section below.
 
 ### template initialization
-fireSense_FrequencyPredictInit <- function(sim) {
-
-  stopifnot(is(sim[[P(sim)$modelName]], "fireSense_FrequencyFit"))
-
+fireSense_FrequencyPredictInit <- function(sim) 
+{
   sim <- scheduleEvent(sim, eventTime = P(sim)$initialRunTime, current(sim)$moduleName, "run")
   invisible(sim)
   
 }
 
 
-fireSense_FrequencyPredictRun <- function(sim) {
-
+fireSense_FrequencyPredictRun <- function(sim) 
+{
+  stopifnot(is(sim[[P(sim)$modelName]], "fireSense_FrequencyFit"))
+  
   moduleName <- current(sim)$moduleName
   currentTime <- time(sim, timeunit(sim))
   endTime <- end(sim, timeunit(sim))
@@ -200,6 +200,8 @@ fireSense_FrequencyPredictRun <- function(sim) {
     kNames <- NULL
     
   }
+  
+  browser()
 
   if (all(unlist(lapply(allxy, function(x) is.vector(envData[[x]]))))) {
     
