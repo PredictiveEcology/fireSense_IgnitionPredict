@@ -75,7 +75,8 @@ defineModule(sim, list(
 ## event types
 #   - type `init` is required for initialiazation
 
-doEvent.fireSense_FrequencyPredict = function(sim, eventTime, eventType, debug = FALSE) {
+doEvent.fireSense_FrequencyPredict = function(sim, eventTime, eventType, debug = FALSE)
+{
   switch(
     eventType,
     init = { sim <- sim$fireSense_FrequencyPredictInit(sim) },
@@ -125,14 +126,13 @@ fireSense_FrequencyPredictRun <- function(sim)
   
   ## Toolbox: set of functions used internally by the module
     ## Raster predict function
-      fireSense_FrequencyPredictRaster <- function(model, data, sim) {
-  
+      fireSense_FrequencyPredictRaster <- function(model, data, sim)
+      {
         model %>%
           model.matrix(c(data, sim[[P(sim)$modelName]]$knots)) %>%
           `%*%` (sim[[P(sim)$modelName]]$coef) %>%
           drop %>% sim[[P(sim)$modelName]]$family$linkinv(.) %>%
           `*` (P(sim)$f)
-        
       }
       
     ## Handling piecewise terms in a formula
@@ -145,25 +145,23 @@ fireSense_FrequencyPredictRun <- function(sim)
   # Load inputs in the data container
   list2env(as.list(envir(sim)), envir = envData)
   
-  for (x in P(sim)$data) {
-    
-    if (!is.null(sim[[x]])) {
-      
-      if (is.data.frame(sim[[x]])) {
-        
+  for (x in P(sim)$data) 
+  {
+    if (!is.null(sim[[x]])) 
+    {
+      if (is.data.frame(sim[[x]])) 
+      {
         list2env(sim[[x]], envir = envData)
-        
-      } else if (is(sim[[x]], "RasterStack")) {
-        
+      } 
+      else if (is(sim[[x]], "RasterStack"))
+      {
         list2env(setNames(unstack(sim[[x]]), names(sim[[x]])), envir = envData)
-        
-      } else if (is(sim[[x]], "RasterLayer")) {
-        
+      } 
+      else if (is(sim[[x]], "RasterLayer"))
+      {
         # Do nothing
-        
       } else stop(paste0(moduleName, "> '", x, "' is not a data.frame, a RasterLayer or a RasterStack."))
     }
-    
   }
   
   # Define pw() within the data container
@@ -172,37 +170,31 @@ fireSense_FrequencyPredictRun <- function(sim)
   terms <- delete.response(terms.formula(sim[[P(sim)$modelName]]$formula))
 
   ## Mapping variables names to data
-  if (!is.null(P(sim)$mapping)) {
-    
-    for (i in 1:length(P(sim)$mapping)) {
-      
+  if (!is.null(P(sim)$mapping)) 
+  {
+    for (i in 1:length(P(sim)$mapping))
+    {
       attr(terms, "term.labels") %<>% gsub(
         pattern = names(P(sim)$mapping[i]),
         replacement = P(sim)$mapping[[i]],
         x = .
       )
-
     }
-    
   }
 
   formula <- reformulate(attr(terms, "term.labels"), intercept = attr(terms, "intercept"))
   allxy <- all.vars(formula)
 
-  if (!is.null(sim[[P(sim)$modelName]]$knots)) {
-    
+  if (!is.null(sim[[P(sim)$modelName]]$knots)) 
+  {
     list2env(as.list(sim[[P(sim)$modelName]]$knots), envir = envData)
     kNames <- names(sim[[P(sim)$modelName]]$knots)
     allxy <- allxy[!allxy %in% kNames]
     
-  } else {
-    
-    kNames <- NULL
-    
-  }
+  } else kNames <- NULL
 
-  if (all(unlist(lapply(allxy, function(x) is.vector(envData[[x]]))))) {
-    
+  if (all(unlist(lapply(allxy, function(x) is.vector(envData[[x]])))))
+  {
     sim$fireSense_FrequencyPredicted[as.character(currentTime)] <- list(
       (formula %>%
          model.matrix(envData) %>%
@@ -212,15 +204,17 @@ fireSense_FrequencyPredictRun <- function(sim)
         `*` (P(sim)$f)
     )
     
-  } else if (all(unlist(lapply(allxy, function(x) is(envData[[x]], "RasterLayer"))))) {
-
+  } 
+  else if (all(unlist(lapply(allxy, function(x) is(envData[[x]], "RasterLayer"))))) 
+  {
     sim$fireSense_FrequencyPredicted[as.character(currentTime)] <- list(
       mget(allxy, envir = envData, inherits = FALSE) %>%
         stack %>% predict(model = formula, fun = fireSense_FrequencyPredictRaster, na.rm = TRUE, sim = sim)
     )
     
-  } else {
-    
+  } 
+  else 
+  {
     missing <- !allxy %in% ls(envData, all.names = TRUE)
     
     if (s <- sum(missing))
@@ -230,9 +224,12 @@ fireSense_FrequencyPredictRun <- function(sim)
     
     badClass <- unlist(lapply(allxy, function(x) is.vector(envData[[x]]) || is(envData[[x]], "RasterLayer")))
     
-    if (any(badClass)) {
+    if (any(badClass))
+    {
       stop(paste0(moduleName, "> Data objects of class 'data.frame' cannot be mixed with objects of other classes."))
-    } else {
+    } 
+    else
+    {
       stop(paste0(moduleName, "> '", paste(allxy[which(!badClass)], collapse = "', '"),
                   "' does not match a data.frame's column, a RasterLayer or a RasterStack's layer."))
     }
@@ -247,7 +244,8 @@ fireSense_FrequencyPredictRun <- function(sim)
 
 
 ### template for save events
-fireSense_FrequencyPredictSave <- function(sim) {
+fireSense_FrequencyPredictSave <- function(sim)
+{
   # ! ----- EDIT BELOW ----- ! #
   # do stuff for this event
   sim <- saveFiles(sim)
