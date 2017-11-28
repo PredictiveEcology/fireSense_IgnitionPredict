@@ -189,8 +189,8 @@ fireSense_FrequencyPredictRun <- function(sim)
     list2env(as.list(sim[[P(sim)$modelName]]$knots), envir = envData)
     kNames <- names(sim[[P(sim)$modelName]]$knots)
     allxy <- allxy[!allxy %in% kNames]
-    
-  } else kNames <- NULL
+  } 
+  else kNames <- NULL
 
   if (all(unlist(lapply(allxy, function(x) is.vector(envData[[x]])))))
   {

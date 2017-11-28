@@ -4,11 +4,13 @@ library(SpaDES)
 
 set.seed(1)
 
+modulePath <- "~/Documents/GitHub/McIntire-lab/modulesPrivate/"
+
 # Define simulation parameters
 times <- list(start = 1, end = 2, timeunit = "year")
 modules <- list("fireSense_FrequencyPredict")
 paths <- list(
-  modulePath = "~/Documents/GitHub/McIntire-lab/modulesPrivate/"
+  modulePath = modulePath
 )
 
 # Create random weather and fire frequency data
