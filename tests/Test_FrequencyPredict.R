@@ -6,8 +6,10 @@ set.seed(1)
 
 modulePath <- "~/Documents/GitHub/McIntire-lab/modulesPrivate/"
 
+start <- end <- 2
+
 # Define simulation parameters
-times <- list(start = 1, end = 2, timeunit = "year")
+times <- list(start = start, end = end, timeunit = "year")
 modules <- list("fireSense_FrequencyPredict")
 paths <- list(
   modulePath = modulePath
@@ -15,17 +17,27 @@ paths <- list(
 
 # Create random weather and fire frequency data
   # data.frame
-  dataFireSense_FrequencyPredict <- data.frame(
-    weather = rnorm(1000, 150, 30),
-    fireFrequency = rpois(1000, .5)
+  dataFireSense_FrequencyPredict <- setNames(
+    list(
+      data.frame(
+        weather = rnorm(1000, 150, 30),
+        fireFrequency = rpois(1000, .5)
+      )
+    ),
+    nm = start
   )
-  
+    
   # raster
   nx <- ny <- 100L
-  dataFireSense_FrequencyPredict <-
-    raster(nrows = ny, ncols = nx, xmn = -nx/2, xmx = nx/2, ymn = -ny/2, ymx = ny/2) %>%
-    gaussMap(scale = 300, var = 0.03, speedup = nx/5e2, inMemory = TRUE) %>%
-    stack %>% setNames("weather")
+  dataFireSense_FrequencyPredict <- setNames(
+    list(
+      raster(nrows = ny, ncols = nx, xmn = -nx/2, xmx = nx/2, ymn = -ny/2, ymx = ny/2) %>%
+        gaussMap(scale = 300, var = 0.03, speedup = nx/5e2, inMemory = TRUE) %>%
+        stack %>% setNames("weather")
+    ),
+    nm = start
+  )
+
 
 # Create a typical output of fireSense_FrequencyFit
 fireSense_FrequencyFitted <- list(
@@ -61,4 +73,4 @@ sim <- simInit(
 )
 
 sim <- spades(sim)
-X11(); plot(sim$fireSense_FrequencyPredicted[[1]])
+X11(); plot(sim$fireSense_FrequencyPredicted[[as.character(start)]])
