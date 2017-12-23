@@ -158,8 +158,9 @@ fireSense_FrequencyPredictRun <- function(sim)
       } 
       else if (is(sim[[x]][[as.character(currentTime)]], "RasterLayer"))
       {
-        # Do nothing
-      } else stop(paste0(moduleName, "> '", x, "' is not a data.frame, a RasterLayer or a RasterStack."))
+        envData[[x]] <- sim[[x]]
+      } 
+      else stop(paste0(moduleName, "> '", x, "' is not a data.frame, a RasterLayer or a RasterStack."))
     }
   }
   
