@@ -29,12 +29,9 @@ defineModule(sim, list(
                             variables present in the model formula. `data`
                             objects can be data.frames, RasterStacks or
                             RasterLayers. However, data.frames cannot be mixed
-                            with objects of other classes. For time series,
-                            `data` objects must be named lists of data.frames, 
-                            RasterStacks or RasterLayers, named starting with 
-                            `start(simList)` and ending with `end(simList)` such
-                            that variables can be matched for every 
-                            `timeunit(simList)` of the simulation."),
+                            with objects of other classes. If variables are not 
+                            found in `data` objects, they are searched in the
+                            `simList` environment."),
     defineParameter(name = "mapping", class = "character, list", default = NULL,
                     desc = "optional named vector or list of character strings
                             mapping one or more variables in the model formula
