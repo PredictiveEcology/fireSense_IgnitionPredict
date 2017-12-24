@@ -31,6 +31,8 @@ Name|Default|Description
 `f`|`1`|rescale predicted rates of fire counts at any given temporal and spatial resolutions by a factor $f = new\_res / old\_res$. `f` is the ratio between the data aggregation scale used for model fitting and the scale at which predictions are to be made.
 `.runInitialTime`|`start(simList)`|when to start this module? By default, the start time of the simulation.
 `.runInterval`|`NA`|optional. Interval between two runs of this module, expressed in units of simulation time.
+`.saveInitialTime`|`NA`|optional. When to start saving outputs to a file.
+`.saveInterval`|`NA`|optional. Interval between save events.
 |||
 
 ## Usage example
