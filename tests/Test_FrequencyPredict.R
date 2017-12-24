@@ -17,27 +17,17 @@ paths <- list(
 
 # Create random weather and fire frequency data
   # data.frame
-  dataFireSense_FrequencyPredict <- setNames(
-    list(
-      data.frame(
-        weather = rnorm(1000, 150, 30),
-        fireFrequency = rpois(1000, .5)
-      )
-    ),
-    nm = start
+  dataFireSense_FrequencyPredict <- data.frame(
+    weather = rnorm(1000, 150, 30),
+    fireFrequency = rpois(1000, .5)
   )
     
   # raster
   nx <- ny <- 100L
-  dataFireSense_FrequencyPredict <- setNames(
-    list(
-      raster(nrows = ny, ncols = nx, xmn = -nx/2, xmx = nx/2, ymn = -ny/2, ymx = ny/2) %>%
-        gaussMap(scale = 300, var = 0.03, speedup = nx/5e2, inMemory = TRUE) %>%
-        stack %>% setNames("weather")
-    ),
-    nm = start
-  )
-
+  dataFireSense_FrequencyPredict <- 
+    raster(nrows = ny, ncols = nx, xmn = -nx/2, xmx = nx/2, ymn = -ny/2, ymx = ny/2) %>%
+    gaussMap(scale = 300, var = 0.03, speedup = nx/5e2, inMemory = TRUE) %>%
+    stack %>% setNames("weather")
 
 # Create a typical output of fireSense_FrequencyFit
 fireSense_FrequencyFitted <- list(
