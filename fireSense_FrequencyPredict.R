@@ -154,7 +154,7 @@ fireSense_FrequencyPredictRun <- function(sim)
       } 
       else if (is(sim[[x]], "RasterLayer"))
       {
-        envData[[x]] <- sim[[x]]
+        next
       } 
       else stop(paste0(moduleName, "> '", x, "' is not a data.frame, a RasterLayer or a RasterStack."))
     }
@@ -191,22 +191,18 @@ fireSense_FrequencyPredictRun <- function(sim)
 
   if (all(unlist(lapply(allxy, function(x) is.vector(envData[[x]])))))
   {
-    sim$fireSense_FrequencyPredicted[as.character(currentTime)] <- list(
-      (formula %>%
-         model.matrix(envData) %>%
-         `%*%` (sim[[P(sim)$modelName]]$coef) %>%
-         drop %>% sim[[P(sim)$modelName]]$family$linkinv(.)
-      ) %>%
-        `*` (P(sim)$f)
-    )
+    sim$fireSense_FrequencyPredicted <- (
+      formula %>%
+        model.matrix(envData) %>%
+        `%*%` (sim[[P(sim)$modelName]]$coef) %>%
+        drop %>% sim[[P(sim)$modelName]]$family$linkinv(.)
+    ) %>% `*` (P(sim)$f)
     
   } 
   else if (all(unlist(lapply(allxy, function(x) is(envData[[x]], "RasterLayer"))))) 
   {
-    sim$fireSense_FrequencyPredicted[as.character(currentTime)] <- list(
-      mget(allxy, envir = envData, inherits = FALSE) %>%
+    sim$fireSense_FrequencyPredicted <- mget(allxy, envir = envData, inherits = FALSE) %>%
         stack %>% predict(model = formula, fun = fireSense_FrequencyPredictRaster, na.rm = TRUE, sim = sim)
-    )
   } 
   else 
   {

@@ -73,4 +73,4 @@ sim <- simInit(
 )
 
 sim <- spades(sim)
-X11(); plot(sim$fireSense_FrequencyPredicted[[as.character(start)]])
+X11(); plot(sim$fireSense_FrequencyPredicted)
