@@ -42,11 +42,11 @@ defineModule(sim, list(
                             `f = new_res / old_res`. `f` is the ratio between 
                             the data aggregation scale used for model fitting
                             and the scale at which predictions are to be made."),
-    defineParameter(name = "initialRunTime", class = "numeric",
+    defineParameter(name = ".runInitialTime", class = "numeric",
                     default = start(sim),
                     desc = "when to start this module? By default, the start 
                             time of the simulation."),
-    defineParameter(name = "intervalRunModule", class = "numeric", default = NA, 
+    defineParameter(name = ".runInterval", class = "numeric", default = NA, 
                     desc = "optional. Interval between two runs of this module,
                             expressed in units of simulation time."),
     defineParameter(".useCache", "numeric", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
@@ -231,8 +231,8 @@ fireSense_FrequencyPredictRun <- function(sim)
     }
   }
   
-  if (!is.na(P(sim)$intervalRunModule) && (currentTime + P(sim)$intervalRunModule) <= endTime) # Assumes time only moves forward
-    sim <- scheduleEvent(sim, currentTime + P(sim)$intervalRunModule, moduleName, "run")
+  if (!is.na(P(sim)$.runInterval))
+    sim <- scheduleEvent(sim, currentTime + P(sim)$.runInterval, moduleName, "run")
   
   invisible(sim)
 }

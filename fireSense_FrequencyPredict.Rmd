@@ -29,8 +29,8 @@ Name|Default|Description
 `data`|`"dataFireSense_FrequencyPredict"`|a character vector indicating the names of objects in the `simList` environment in which to look for variables present in the model formula. `data` objects can be data.frames, RasterStacks or RasterLayers. However, data.frames cannot be mixed with objects of other classes. If variables are not found in `data` objects, they are searched in the `simList` environment.
 `mapping`|`NULL`|optional named vector or list of character strings mapping one or more variables in the model formula to those in `data` objects.
 `f`|`1`|rescale predicted rates of fire counts at any given temporal and spatial resolutions by a factor $f = new\_res / old\_res$. `f` is the ratio between the data aggregation scale used for model fitting and the scale at which predictions are to be made.
-`initialRunTime`|`start(simList)`|when to start this module? By default, the start time of the simulation.
-`intervalRunModule`|`NA`|optional. Interval between two runs of this module, expressed in units of simulation time.
+`.runInitialTime`|`start(simList)`|when to start this module? By default, the start time of the simulation.
+`.runInterval`|`NA`|optional. Interval between two runs of this module, expressed in units of simulation time.
 |||
 
 ## Usage example
