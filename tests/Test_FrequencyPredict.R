@@ -24,8 +24,8 @@ paths <- list(
     
   # raster
   nx <- ny <- 100L
-  dataFireSense_FrequencyPredict <- 
-    raster(nrows = ny, ncols = nx, xmn = -nx/2, xmx = nx/2, ymn = -ny/2, ymx = ny/2) %>%
+  dummyRaster <- raster(nrows = ny, ncols = nx, xmn = -nx/2, xmx = nx/2, ymn = -ny/2, ymx = ny/2)
+  dataFireSense_FrequencyPredict <- dummyRaster %>%
     gaussMap(scale = 300, var = 0.03, speedup = nx/5e2, inMemory = TRUE) %>%
     stack %>% setNames("weather")
 
