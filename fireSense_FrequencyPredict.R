@@ -156,7 +156,7 @@ fireSense_FrequencyPredictRun <- function(sim)
       {
         next
       } 
-      else stop(paste0(moduleName, "> '", x, "' is not a data.frame, a RasterLayer or a RasterStack."))
+      else stop(moduleName, "> '", x, "' is not a data.frame, a RasterLayer or a RasterStack.")
     }
   }
   
@@ -209,20 +209,20 @@ fireSense_FrequencyPredictRun <- function(sim)
     missing <- !allxy %in% ls(envData, all.names = TRUE)
     
     if (s <- sum(missing))
-      stop(paste0(moduleName, "> '", allxy[missing][1L], "'",
-                  if (s > 1) paste0(" (and ", s-1L, " other", if (s>2) "s", ")"),
-                  " not found in data objects."))
-    
+      stop(moduleName, "> '", allxy[missing][1L], "'",
+           if (s > 1) paste0(" (and ", s-1L, " other", if (s>2) "s", ")"),
+           " not found in data objects.")
+
     badClass <- unlist(lapply(allxy, function(x) is.vector(envData[[x]]) || is(envData[[x]], "RasterLayer")))
     
     if (any(badClass))
     {
-      stop(paste0(moduleName, "> Data objects of class 'data.frame' cannot be mixed with objects of other classes."))
+      stop(moduleName, "> Data objects of class 'data.frame' cannot be mixed with objects of other classes.")
     } 
     else
     {
-      stop(paste0(moduleName, "> '", paste(allxy[which(!badClass)], collapse = "', '"),
-                  "' does not match a data.frame's column, a RasterLayer or a RasterStack's layer."))
+      stop(moduleName, "> '", paste(allxy[which(!badClass)], collapse = "', '"),
+           "' does not match a data.frame's column, a RasterLayer or a RasterStack's layer.")
     }
   }
   
