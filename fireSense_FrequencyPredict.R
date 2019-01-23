@@ -132,13 +132,9 @@ frequencyPredictRun <- function(sim)
       
     ## Handling piecewise terms in a formula
     pw <- function(v, k) pmax(v - k, 0)
-
-  # Create a container to hold the data
-  envData <- new.env(parent = envir(sim))
-  on.exit(rm(envData))
   
   # Load inputs in the data container
-  list2env(as.list(envir(sim)), envir = envData)
+  list2env(as.list(envir(sim)), envir = mod)
   
   for (x in P(sim)$data) 
   {
@@ -146,11 +142,11 @@ frequencyPredictRun <- function(sim)
     {
       if (is.data.frame(sim[[x]])) 
       {
-        list2env(sim[[x]], envir = envData)
+        list2env(sim[[x]], envir = mod)
       } 
       else if (is(sim[[x]], "RasterStack"))
       {
-        list2env(setNames(unstack(sim[[x]]), names(sim[[x]])), envir = envData)
+        list2env(setNames(unstack(sim[[x]]), names(sim[[x]])), envir = mod)
       } 
       else if (is(sim[[x]], "RasterLayer"))
       {
@@ -161,7 +157,7 @@ frequencyPredictRun <- function(sim)
   }
   
   # Define pw() within the data container
-  envData$pw <- pw
+  mod$pw <- pw
 
   terms <- delete.response(terms.formula(sim[[P(sim)$modelName]]$formula))
 
@@ -183,37 +179,37 @@ frequencyPredictRun <- function(sim)
 
   if (!is.null(sim[[P(sim)$modelName]]$knots)) 
   {
-    list2env(as.list(sim[[P(sim)$modelName]]$knots), envir = envData)
+    list2env(as.list(sim[[P(sim)$modelName]]$knots), envir = mod)
     kNames <- names(sim[[P(sim)$modelName]]$knots)
     allxy <- allxy[!allxy %in% kNames]
   } 
   else kNames <- NULL
 
-  if (all(unlist(lapply(allxy, function(x) is.vector(envData[[x]])))))
+  if (all(unlist(lapply(allxy, function(x) is.vector(mod[[x]])))))
   {
     sim$frequencyPredicted <- (
       formula %>%
-        model.matrix(envData) %>%
+        model.matrix(mod) %>%
         `%*%` (sim[[P(sim)$modelName]]$coef) %>%
         drop %>% sim[[P(sim)$modelName]]$family$linkinv(.)
     ) %>% `*` (P(sim)$f)
     
   } 
-  else if (all(unlist(lapply(allxy, function(x) is(envData[[x]], "RasterLayer"))))) 
+  else if (all(unlist(lapply(allxy, function(x) is(mod[[x]], "RasterLayer"))))) 
   {
-    sim$frequencyPredicted <- mget(allxy, envir = envData, inherits = FALSE) %>%
+    sim$frequencyPredicted <- mget(allxy, envir = mod, inherits = FALSE) %>%
         stack %>% predict(model = formula, fun = fireSense_FrequencyPredictRaster, na.rm = TRUE, sim = sim)
   } 
   else 
   {
-    missing <- !allxy %in% ls(envData, all.names = TRUE)
+    missing <- !allxy %in% ls(mod, all.names = TRUE)
     
     if (s <- sum(missing))
       stop(moduleName, "> '", allxy[missing][1L], "'",
            if (s > 1) paste0(" (and ", s-1L, " other", if (s>2) "s", ")"),
            " not found in data objects.")
 
-    badClass <- unlist(lapply(allxy, function(x) is.vector(envData[[x]]) || is(envData[[x]], "RasterLayer")))
+    badClass <- unlist(lapply(allxy, function(x) is.vector(mod[[x]]) || is(mod[[x]], "RasterLayer")))
     
     if (any(badClass))
     {
