@@ -83,9 +83,9 @@ doEvent.fireSense_FrequencyPredict = function(sim, eventTime, eventType, debug =
 {
   switch(
     eventType,
-    init = { sim <- sim$fireSense_FrequencyPredictInit(sim) },
-    run = { sim <- sim$fireSense_FrequencyPredictRun(sim) },
-    save = { sim <- sim$fireSense_FrequencyPredictSave(sim) },
+    init = { sim <- frequencyPredictInit(sim) },
+    run = { sim <- frequencyPredictRun(sim) },
+    save = { sim <- frequencyPredictSave(sim) },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
   )
@@ -98,7 +98,7 @@ doEvent.fireSense_FrequencyPredict = function(sim, eventTime, eventType, debug =
 #   - keep event functions short and clean, modularize by calling subroutines from section below.
 
 ### template initialization
-fireSense_FrequencyPredictInit <- function(sim) 
+frequencyPredictInit <- function(sim) 
 {
   moduleName <- current(sim)$moduleName
   
@@ -111,7 +111,7 @@ fireSense_FrequencyPredictInit <- function(sim)
 }
 
 
-fireSense_FrequencyPredictRun <- function(sim) 
+frequencyPredictRun <- function(sim) 
 {
   stopifnot(is(sim[[P(sim)$modelName]], "fireSense_FrequencyFit"))
   
@@ -233,7 +233,7 @@ fireSense_FrequencyPredictRun <- function(sim)
 }
 
 
-fireSense_FrequencyPredictSave <- function(sim)
+frequencyPredictSave <- function(sim)
 {
   moduleName <- current(sim)$moduleName
   timeUnit <- timeunit(sim)
