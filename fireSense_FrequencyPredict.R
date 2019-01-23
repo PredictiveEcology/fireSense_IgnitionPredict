@@ -70,7 +70,7 @@ defineModule(sim, list(
     )
   ),
   outputObjects = createsOutput(
-    objectName = "frequencyPredicted",
+    objectName = "fireSense_FrequencyPredicted",
     objectClass = NA_character_,
     desc = "An object whose class depends on that of the inputs, could be a RasterLayer or a vector of type numeric."
   )
@@ -187,7 +187,7 @@ frequencyPredictRun <- function(sim)
 
   if (all(unlist(lapply(allxy, function(x) is.vector(mod[[x]])))))
   {
-    sim$frequencyPredicted <- (
+    sim$fireSense_FrequencyPredicted <- (
       formula %>%
         model.matrix(mod) %>%
         `%*%` (sim[[P(sim)$modelName]]$coef) %>%
@@ -197,7 +197,7 @@ frequencyPredictRun <- function(sim)
   } 
   else if (all(unlist(lapply(allxy, function(x) is(mod[[x]], "RasterLayer"))))) 
   {
-    sim$frequencyPredicted <- mget(allxy, envir = mod, inherits = FALSE) %>%
+    sim$fireSense_FrequencyPredicted <- mget(allxy, envir = mod, inherits = FALSE) %>%
         stack %>% predict(model = formula, fun = fireSense_FrequencyPredictRaster, na.rm = TRUE, sim = sim)
   } 
   else 
@@ -236,7 +236,7 @@ frequencyPredictSave <- function(sim)
   currentTime <- time(sim, timeUnit)
   
   saveRDS(
-    sim$frequencyPredicted, 
+    sim$fireSense_FrequencyPredicted, 
     file = file.path(paths(sim)$out, paste0("fireSense_FrequencyPredicted_", timeUnit, currentTime, ".rds"))
   )
   
