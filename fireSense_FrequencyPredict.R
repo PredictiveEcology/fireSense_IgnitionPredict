@@ -121,7 +121,7 @@ frequencyPredictRun <- function(sim)
   
   ## Toolbox: set of functions used internally by the module
     ## Raster predict function
-      fireSense_FrequencyPredictRaster <- function(model, data, sim)
+      mod$frequencyPredictRaster <- function(model, data, sim)
       {
         model %>%
           model.matrix(c(data, sim[[P(sim)$modelName]]$knots)) %>%
@@ -202,7 +202,7 @@ frequencyPredictRun <- function(sim)
   else if (all(unlist(lapply(allxy, function(x) is(envData[[x]], "RasterLayer"))))) 
   {
     sim$frequencyPredicted <- mget(allxy, envir = envData, inherits = FALSE) %>%
-        stack %>% predict(model = formula, fun = fireSense_FrequencyPredictRaster, na.rm = TRUE, sim = sim)
+        stack %>% predict(model = formula, fun = mod$frequencyPredictRaster, na.rm = TRUE, sim = sim)
   } 
   else 
   {
