@@ -119,19 +119,18 @@ frequencyPredictRun <- function(sim)
   currentTime <- time(sim, timeunit(sim))
   endTime <- end(sim, timeunit(sim))
   
-  ## Toolbox: set of functions used internally by the module
-    ## Raster predict function
-      frequencyPredictRaster <- function(model, data, sim)
-      {
-        model %>%
-          model.matrix(c(data, sim[[P(sim)$modelName]]$knots)) %>%
-          `%*%` (sim[[P(sim)$modelName]]$coef) %>%
-          drop %>% sim[[P(sim)$modelName]]$family$linkinv(.) %>%
-          `*` (P(sim)$f)
-      }
-      
-    ## Handling piecewise terms in a formula
-    pw <- function(v, k) pmax(v - k, 0)
+  ## Toolbox: set of functions used internally by frequencyPredictRun
+    frequencyPredictRaster <- function(model, data, sim)
+    {
+      model %>%
+        model.matrix(c(data, sim[[P(sim)$modelName]]$knots)) %>%
+        `%*%` (sim[[P(sim)$modelName]]$coef) %>%
+        drop %>% sim[[P(sim)$modelName]]$family$linkinv(.) %>%
+        `*` (P(sim)$f)
+    }
+    
+  ## Handling piecewise terms in a formula
+  pw <- function(v, k) pmax(v - k, 0)
   
   # Load inputs in the data container
   list2env(as.list(envir(sim)), envir = mod)
