@@ -4,12 +4,12 @@
 #    `test-functionName.R` format so that your can directly call `moduleCoverage`
 #    to calculate module coverage information.
 #    `functionName` is a function's name in your module (e.g., `fireSense_FrequencyPredictEvent1`).
-# 2. Copy this file to the tests folder (i.e., ` # replace with empty string insteadfireSense_FrequencyPredict/tests/testthat`).
+# 2. Copy this file to the tests folder (i.e., `fireSense_FrequencyPredict/tests/testthat`).
 
 # 3. Modify the test description based on the content you are testing:
 test_that("test Event1 and Event2.", {
   module <- list("fireSense_FrequencyPredict")
-  path <- list(modulePath = " # replace with empty string instead",
+  path <- list(modulePath = "..",
                outputPath = file.path(tempdir(), "outputs"))
   parameters <- list(
     #.progress = list(type = "graphical", interval = 1),
