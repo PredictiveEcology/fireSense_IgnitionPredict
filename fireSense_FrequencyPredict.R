@@ -133,8 +133,8 @@ frequencyPredictRun <- function(sim)
   pw <- function(v, k) pmax(v - k, 0)
   
   # Load inputs in the data container
-  list2env(as.list(envir(sim)), envir = mod)
-  
+  # list2env(as.list(envir(sim)), envir = mod)
+
   for (x in P(sim)$data) 
   {
     if (!is.null(sim[[x]])) 
@@ -143,15 +143,15 @@ frequencyPredictRun <- function(sim)
       {
         list2env(sim[[x]], envir = mod)
       } 
-      else if (is(sim[[x]], "RasterStack"))
+      else if (is(sim[[x]], "RasterStack") || is(sim[[x]], "RasterBrick"))
       {
         list2env(setNames(unstack(sim[[x]]), names(sim[[x]])), envir = mod)
       } 
       else if (is(sim[[x]], "RasterLayer"))
       {
-        next
+        mod[[x]] <- sim[[x]]
       } 
-      else stop(moduleName, "> '", x, "' is not a data.frame, a RasterLayer or a RasterStack.")
+      else stop(moduleName, "> '", x, "' is not a data.frame, a RasterLayer, a RasterStack or a RasterBrick.")
     }
   }
   
