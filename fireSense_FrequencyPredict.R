@@ -17,7 +17,7 @@ defineModule(sim, list(
   reqdPkgs = list("magrittr", "raster"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", default, min, max, "parameter description")),
-    defineParameter(name = "modelName", class = "character", 
+    defineParameter(name = "modelObjName", class = "character", 
                     default = "fireSense_FrequencyFitted",
                     desc = "name of the object of class fireSense_FrequencyFit
                             describing the statistical model used for
@@ -27,11 +27,9 @@ defineModule(sim, list(
                     desc = "a character vector indicating the names of objects 
                             in the `simList` environment in which to look for 
                             variables present in the model formula. `data`
-                            objects can be data.frames, RasterStacks or
-                            RasterLayers. However, data.frames cannot be mixed
-                            with objects of other classes. If variables are not 
-                            found in `data` objects, they are searched in the
-                            `simList` environment."),
+                            objects can be data.frames, RasterLayers, RasterStacks or
+                            RasterBricks. However, data.frames cannot be mixed
+                            with objects of other classes."),
     defineParameter(name = "mapping", class = "character, list", default = NULL,
                     desc = "optional named vector or list of character strings
                             mapping one or more variables in the model formula
@@ -81,11 +79,28 @@ defineModule(sim, list(
 
 doEvent.fireSense_FrequencyPredict = function(sim, eventTime, eventType, debug = FALSE)
 {
+  moduleName <- current(sim)$moduleName
+  
   switch(
     eventType,
-    init = { sim <- frequencyPredictInit(sim) },
-    run = { sim <- frequencyPredictRun(sim) },
-    save = { sim <- frequencyPredictSave(sim) },
+    init = {
+      sim <- scheduleEvent(sim, eventTime = P(sim)$.runInitialTime, moduleName, "run")
+      
+      if (!is.na(P(sim)$.saveInitialTime))
+        sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, moduleName, "save", .last())
+    },
+    run = { 
+      sim <- frequencyPredictRun(sim) 
+      
+      if (!is.na(P(sim)$.runInterval))
+        sim <- scheduleEvent(sim, time(sim) + P(sim)$.runInterval, moduleName, "run")
+    },
+    save = {
+      sim <- frequencyPredictSave(sim) 
+      
+      if (!is.na(P(sim)$.saveInterval))
+        sim <- scheduleEvent(sim, time(sim) + P(sim)$.saveInterval, moduleName, "save", .last())
+    },
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
   )
@@ -97,35 +112,20 @@ doEvent.fireSense_FrequencyPredict = function(sim, eventTime, eventType, debug =
 #   - `modulenameInit()` function is required for initiliazation;
 #   - keep event functions short and clean, modularize by calling subroutines from section below.
 
-### template initialization
-frequencyPredictInit <- function(sim) 
-{
-  moduleName <- current(sim)$moduleName
-  
-  sim <- scheduleEvent(sim, eventTime = P(sim)$.runInitialTime, moduleName, "run")
-  
-  if (!is.na(P(sim)$.saveInitialTime))
-    sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, moduleName, "save", .last())
-  
-  invisible(sim)
-}
-
-
 frequencyPredictRun <- function(sim) 
 {
-  stopifnot(is(sim[[P(sim)$modelName]], "fireSense_FrequencyFit"))
-  
   moduleName <- current(sim)$moduleName
-  currentTime <- time(sim, timeunit(sim))
-  endTime <- end(sim, timeunit(sim))
+  
+  if (!is(sim[[P(sim)$modelObjName]], "fireSense_FrequencyFit"))
+    stop(moduleName, "> '", P(sim)$modelObjName, "' should be of class 'fireSense_FrequencyFit")
   
   ## Toolbox: set of functions used internally by frequencyPredictRun
     frequencyPredictRaster <- function(model, data, sim)
     {
       model %>%
-        model.matrix(c(data, sim[[P(sim)$modelName]]$knots)) %>%
-        `%*%` (sim[[P(sim)$modelName]]$coef) %>%
-        drop %>% sim[[P(sim)$modelName]]$family$linkinv(.) %>%
+        model.matrix(c(data, sim[[P(sim)$modelObjName]]$knots)) %>%
+        `%*%` (sim[[P(sim)$modelObjName]]$coef) %>%
+        drop %>% sim[[P(sim)$modelObjName]]$family$linkinv(.) %>%
         `*` (P(sim)$f)
     }
     
@@ -158,7 +158,7 @@ frequencyPredictRun <- function(sim)
   # Define pw() within the data container
   mod$pw <- pw
 
-  terms <- delete.response(terms.formula(sim[[P(sim)$modelName]]$formula))
+  terms <- delete.response(terms.formula(sim[[P(sim)$modelObjName]]$formula))
 
   ## Mapping variables names to data
   if (!is.null(P(sim)$mapping)) 
@@ -176,10 +176,10 @@ frequencyPredictRun <- function(sim)
   formula <- reformulate(attr(terms, "term.labels"), intercept = attr(terms, "intercept"))
   allxy <- all.vars(formula)
 
-  if (!is.null(sim[[P(sim)$modelName]]$knots)) 
+  if (!is.null(sim[[P(sim)$modelObjName]]$knots)) 
   {
-    list2env(as.list(sim[[P(sim)$modelName]]$knots), envir = mod)
-    kNames <- names(sim[[P(sim)$modelName]]$knots)
+    list2env(as.list(sim[[P(sim)$modelObjName]]$knots), envir = mod)
+    kNames <- names(sim[[P(sim)$modelObjName]]$knots)
     allxy <- allxy[!allxy %in% kNames]
   } 
   else kNames <- NULL
@@ -189,8 +189,8 @@ frequencyPredictRun <- function(sim)
     sim$fireSense_FrequencyPredicted <- (
       formula %>%
         model.matrix(mod) %>%
-        `%*%` (sim[[P(sim)$modelName]]$coef) %>%
-        drop %>% sim[[P(sim)$modelName]]$family$linkinv(.)
+        `%*%` (sim[[P(sim)$modelObjName]]$coef) %>%
+        drop %>% sim[[P(sim)$modelObjName]]$family$linkinv(.)
     ) %>% `*` (P(sim)$f)
     
   } 
@@ -217,12 +217,9 @@ frequencyPredictRun <- function(sim)
     else
     {
       stop(moduleName, "> '", paste(allxy[which(!badClass)], collapse = "', '"),
-           "' does not match a data.frame's column, a RasterLayer or a RasterStack's layer.")
+           "' does not match a data.frame's column, a RasterLayer or a layer from a RasterStack or RasterBrick.")
     }
   }
-  
-  if (!is.na(P(sim)$.runInterval))
-    sim <- scheduleEvent(sim, currentTime + P(sim)$.runInterval, moduleName, "run")
   
   invisible(sim)
 }
@@ -238,9 +235,6 @@ frequencyPredictSave <- function(sim)
     sim$fireSense_FrequencyPredicted, 
     file = file.path(paths(sim)$out, paste0("fireSense_FrequencyPredicted_", timeUnit, currentTime, ".rds"))
   )
-  
-  if (!is.na(P(sim)$.saveInterval))
-    sim <- scheduleEvent(sim, currentTime + P(sim)$.saveInterval, moduleName, "save", .last())
   
   invisible(sim)
 }

@@ -25,8 +25,8 @@ downloadModule(moduleName, path = spadesModulesDirectory)
 ## Module parameters
 Name|Default|Description
 ----|:-------|---------------------------------------------------------------------
-`modelName`|`"fireSense_FrequencyFitted"`|name of the object of class fireSense_FrequencyFit describing the statistical model used for predictions.
-`data`|`"dataFireSense_FrequencyPredict"`|a character vector indicating the names of objects in the `simList` environment in which to look for variables present in the model formula. `data` objects can be data.frames, RasterStacks or RasterLayers. However, data.frames cannot be mixed with objects of other classes. If variables are not found in `data` objects, they are searched in the `simList` environment.
+`modelObjName`|`"fireSense_FrequencyFitted"`|name of the object of class fireSense_FrequencyFit describing the statistical model used for predictions.
+`data`|`"dataFireSense_FrequencyPredict"`|a character vector indicating the names of objects in the `simList` environment in which to look for variables present in the model formula. `data` objects can be data.frames, RasterStacks or RasterLayers. However, data.frames cannot be mixed with objects of other classes.
 `mapping`|`NULL`|optional named vector or list of character strings mapping one or more variables in the model formula to those in `data` objects.
 `f`|`1`|rescale predicted rates of fire counts at any given temporal and spatial resolutions by a factor $f = new\_res / old\_res$. `f` is the ratio between the data aggregation scale used for model fitting and the scale at which predictions are to be made.
 `.runInitialTime`|`start(simList)`|when to start this module? By default, the start time of the simulation.
@@ -42,6 +42,8 @@ library(raster)
 library(SpaDES)
 
 set.seed(123)
+
+spadesModulesDirectory <- ".."
 
 # Define simulation parameters
 times <- list(start = 1, end = 1, timeunit = "year")
@@ -105,13 +107,13 @@ sim$fireSense_FrequencyPredicted
 # Events
 Events are scheduled as follows:
 
-- Module initiation
+- Module initialisation
 - Make predictions
 
 # Data dependencies
 ## Input data
 - **fireSense_FrequencyFitted**: an object of class `fireSense_FrequencyFit` created with the fireSense_FrequencyFit module.
-- **dataFireSense_FrequencyPredict**: one or more data.frames, RasterLayers or RasterStacks in which to look for variables with which to predict.
+- **dataFireSense_FrequencyPredict**: one or more data.frames, RasterLayers, RasterStacks or RasterBricks in which to look for variables with which to predict.
 
 ## Output data
 - **fireSense_FrequencyPredicted**: an object whose class depends on those in input:
@@ -119,7 +121,7 @@ Events are scheduled as follows:
 Input object class | Output object class
 :-:|:-:
 `data.frame` | `Numeric vector`
-`RasterLayer`<br>`RasterStack` | `RasterLayer`
+`RasterLayer`<br>`RasterStack`<br>`RasterBrick` | `RasterLayer`
 ||
 
 # Links to other modules
