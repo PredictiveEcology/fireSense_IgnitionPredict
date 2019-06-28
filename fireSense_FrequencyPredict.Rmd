@@ -28,7 +28,7 @@ Name|Default|Description
 `modelObjName`|`"fireSense_FrequencyFitted"`|name of the object of class fireSense_FrequencyFit describing the statistical model used for predictions.
 `data`|`"dataFireSense_FrequencyPredict"`|a character vector indicating the names of objects in the `simList` environment in which to look for variables present in the model formula. `data` objects can be data.frames, RasterStacks or RasterLayers. However, data.frames cannot be mixed with objects of other classes.
 `mapping`|`NULL`|optional named vector or list of character strings mapping one or more variables in the model formula to those in `data` objects.
-`f`|`1`|rescale predicted rates of fire counts at any given temporal and spatial resolutions by a factor $f = new\_res / old\_res$. `f` is the ratio between the data aggregation scale used for model fitting and the scale at which predictions are to be made.
+`rescalFactor`|`1`|rescale predicted rates of fire counts at any given temporal and spatial resolutions by a factor $rescalFactor = new\_res / old\_res$. `rescalFactor` is the ratio between the data aggregation scale used for model fitting and the scale at which predictions are to be made.
 `.runInitialTime`|`start(simList)`|when to start this module? By default, the start time of the simulation.
 `.runInterval`|`NA`|optional. Interval between two runs of this module, expressed in units of simulation time.
 `.saveInitialTime`|`NA`|optional. When to start saving outputs to a file.
@@ -84,7 +84,7 @@ parameters <- list(
                                           # in the formula of the fitted object
                                           # to those in data. Here weather2
                                           # (formula) is mapped to weather (data).
-    f = 10
+    rescalFactor = 10
   )
 )
 

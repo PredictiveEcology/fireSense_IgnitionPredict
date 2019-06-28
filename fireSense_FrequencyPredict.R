@@ -34,12 +34,13 @@ defineModule(sim, list(
                     desc = "optional named vector or list of character strings
                             mapping one or more variables in the model formula
                             to those in `data` objects."),
-    defineParameter("f", "numeric", 1, 
+    defineParameter("rescalFactor", "numeric", 1, 
                     desc = "rescale predicted rates of fire counts at any given 
                             temporal and spatial resolutions by a factor 
-                            `f = new_res / old_res`. `f` is the ratio between 
-                            the data aggregation scale used for model fitting
-                            and the scale at which predictions are to be made."),
+                            `rescalFactor = new_res / old_res`. `rescalFactor`
+                            is the ratio between the data aggregation scale used
+                            for model fitting and the scale at which predictions
+                            are to be made."),
     defineParameter(name = ".runInitialTime", class = "numeric",
                     default = start(sim),
                     desc = "when to start this module? By default, the start 
@@ -126,7 +127,7 @@ frequencyPredictRun <- function(sim)
         model.matrix(c(data, sim[[P(sim)$modelObjName]]$knots)) %>%
         `%*%` (sim[[P(sim)$modelObjName]]$coef) %>%
         drop %>% sim[[P(sim)$modelObjName]]$family$linkinv(.) %>%
-        `*` (P(sim)$f)
+        `*` (P(sim)$rescalFactor)
     }
     
   ## Handling piecewise terms in a formula
@@ -191,7 +192,7 @@ frequencyPredictRun <- function(sim)
         model.matrix(mod) %>%
         `%*%` (sim[[P(sim)$modelObjName]]$coef) %>%
         drop %>% sim[[P(sim)$modelObjName]]$family$linkinv(.)
-    ) %>% `*` (P(sim)$f)
+    ) %>% `*` (P(sim)$rescalFactor)
     
   } 
   else if (all(unlist(lapply(allxy, function(x) is(mod[[x]], "RasterLayer"))))) 
@@ -204,9 +205,11 @@ frequencyPredictRun <- function(sim)
     missing <- !allxy %in% ls(mod, all.names = TRUE)
     
     if (s <- sum(missing))
-      stop(moduleName, "> '", allxy[missing][1L], "'",
-           if (s > 1) paste0(" (and ", s-1L, " other", if (s>2) "s", ")"),
-           " not found in data objects.")
+      stop(
+        moduleName, "> '", allxy[missing][1L], "'",
+        if (s > 1) paste0(" (and ", s-1L, " other", if (s>2) "s", ")"),
+        " not found in data objects."
+      )
 
     badClass <- unlist(lapply(allxy, function(x) is.vector(mod[[x]]) || is(mod[[x]], "RasterLayer")))
     
