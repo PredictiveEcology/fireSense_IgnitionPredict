@@ -233,10 +233,10 @@ frequencyPredictSave <- function(sim)
   moduleName <- current(sim)$moduleName
   timeUnit <- timeunit(sim)
   currentTime <- time(sim, timeUnit)
-  
-  saveRDS(
+
+  raster::writeRaster(
     sim$fireSense_FrequencyPredicted, 
-    file = file.path(paths(sim)$out, paste0("fireSense_FrequencyPredicted_", timeUnit, currentTime, ".rds"))
+    filename = file.path(paths(sim)$out, paste0("fireSense_FrequencyPredicted_", timeUnit, currentTime, ".tif"))
   )
   
   invisible(sim)
