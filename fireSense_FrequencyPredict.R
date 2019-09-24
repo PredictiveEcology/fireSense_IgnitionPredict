@@ -136,28 +136,30 @@ frequencyPredictRun <- function(sim)
   # Load inputs in the data container
   # list2env(as.list(envir(sim)), envir = mod)
 
-  for (x in P(sim)$data) 
+  mod_env <- new.env()
+  
+  for (x in P(sim)$data)
   {
     if (!is.null(sim[[x]])) 
     {
       if (is.data.frame(sim[[x]])) 
       {
-        list2env(sim[[x]], envir = mod)
+        list2env(sim[[x]], envir = mod_env)
       } 
       else if (is(sim[[x]], "RasterStack") || is(sim[[x]], "RasterBrick"))
       {
-        list2env(setNames(unstack(sim[[x]]), names(sim[[x]])), envir = mod)
+        list2env(setNames(unstack(sim[[x]]), names(sim[[x]])), envir = mod_env)
       } 
       else if (is(sim[[x]], "RasterLayer"))
       {
-        mod[[x]] <- sim[[x]]
+        mod_env[[x]] <- sim[[x]]
       } 
       else stop(moduleName, "> '", x, "' is not a data.frame, a RasterLayer, a RasterStack or a RasterBrick.")
     }
   }
   
   # Define pw() within the data container
-  mod$pw <- pw
+  mod_env$pw <- pw
 
   terms <- delete.response(terms.formula(sim[[P(sim)$modelObjName]]$formula))
 
@@ -179,30 +181,30 @@ frequencyPredictRun <- function(sim)
 
   if (!is.null(sim[[P(sim)$modelObjName]]$knots)) 
   {
-    list2env(as.list(sim[[P(sim)$modelObjName]]$knots), envir = mod)
+    list2env(as.list(sim[[P(sim)$modelObjName]]$knots), envir = mod_env)
     kNames <- names(sim[[P(sim)$modelObjName]]$knots)
     allxy <- allxy[!allxy %in% kNames]
   } 
   else kNames <- NULL
 
-  if (all(unlist(lapply(allxy, function(x) is.vector(mod[[x]])))))
+  if (all(unlist(lapply(allxy, function(x) is.vector(mod_env[[x]])))))
   {
     sim$fireSense_FrequencyPredicted <- (
       formula %>%
-        model.matrix(mod) %>%
+        model.matrix(mod_env) %>%
         `%*%` (sim[[P(sim)$modelObjName]]$coef) %>%
         drop %>% sim[[P(sim)$modelObjName]]$family$linkinv(.)
     ) %>% `*` (P(sim)$rescalFactor)
     
   } 
-  else if (all(unlist(lapply(allxy, function(x) is(mod[[x]], "RasterLayer"))))) 
+  else if (all(unlist(lapply(allxy, function(x) is(mod_env[[x]], "RasterLayer"))))) 
   {
-    sim$fireSense_FrequencyPredicted <- mget(allxy, envir = mod, inherits = FALSE) %>%
+    sim$fireSense_FrequencyPredicted <- mget(allxy, envir = mod_env, inherits = FALSE) %>%
         stack %>% predict(model = formula, fun = frequencyPredictRaster, na.rm = TRUE, sim = sim)
   } 
   else 
   {
-    missing <- !allxy %in% ls(mod, all.names = TRUE)
+    missing <- !allxy %in% ls(mod_env, all.names = TRUE)
     
     if (s <- sum(missing))
       stop(
@@ -211,7 +213,7 @@ frequencyPredictRun <- function(sim)
         " not found in data objects."
       )
 
-    badClass <- unlist(lapply(allxy, function(x) is.vector(mod[[x]]) || is(mod[[x]], "RasterLayer")))
+    badClass <- unlist(lapply(allxy, function(x) is.vector(mod_env[[x]]) || is(mod_env[[x]], "RasterLayer")))
     
     if (any(badClass))
     {
