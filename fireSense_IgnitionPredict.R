@@ -1,29 +1,29 @@
 # Everything in this file gets sourced during simInit, and all functions and objects
 # are put into the simList. To use objects and functions, use sim$xxx.
 defineModule(sim, list(
-  name = "fireSense_FrequencyPredict",
+  name = "fireSense_IgnitionPredict",
   description = "Predict rates of fire frequency from a model fitted using the
-                 fireSense_FrequencyFit module. These can be used to feed the
+                 fireSense_IgnitionFit module. These can be used to feed the
                  ignition component of a landscape fire model (e.g fireSense).",
   keywords = c("fire frequency", "additive property", "poisson", "negative binomial", "fireSense"),
   authors = c(person("Jean", "Marchal", email = "jean.d.marchal@gmail.com", role = c("aut", "cre"))),
   childModules = character(),
-  version = list(SpaDES.core = "0.1.0", fireSense_FrequencyPredict = "0.1.0"),
+  version = list(SpaDES.core = "0.1.0", fireSense_IgnitionPredict = "0.1.0"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
-  documentation = list("README.txt", "fireSense_FrequencyPredict.Rmd"),
+  documentation = list("README.txt", "fireSense_IgnitionPredict.Rmd"),
   reqdPkgs = list("magrittr", "raster"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", default, min, max, "parameter description")),
     defineParameter(name = "modelObjName", class = "character", 
-                    default = "fireSense_FrequencyFitted",
-                    desc = "name of the object of class fireSense_FrequencyFit
+                    default = "fireSense_IgnitionFitted",
+                    desc = "name of the object of class fireSense_IgnitionFit
                             describing the statistical model used for
                             predictions."),
     defineParameter(name = "data", class = "character",
-                    default = "dataFireSense_FrequencyPredict",
+                      default = "dataFireSense_IgnitionPredict",
                     desc = "a character vector indicating the names of objects 
                             in the `simList` environment in which to look for 
                             variables present in the model formula. `data`
@@ -56,20 +56,20 @@ defineModule(sim, list(
   ),
   inputObjects = rbind(
     expectsInput(
-      objectName = "fireSense_FrequencyFitted",
-      objectClass = "fireSense_FrequencyFit",
+      objectName = "fireSense_IgnitionFitted",
+      objectClass = "fireSense_IgnitionFit",
       sourceURL = NA_character_,
-      desc = "An object of class fireSense_FrequencyFit created with the fireSense_FrequencyFit module."
+      desc = "An object of class fireSense_IgnitionFit created with the fireSense_IgnitionFit module."
     ),
     expectsInput(
-      objectName = "dataFireSense_FrequencyPredict",
+      objectName = "dataFireSense_IgnitionPredict",
       objectClass = "data.frame, RasterLayer, RasterStack",
       sourceURL = NA_character_,
       desc = "One or more objects of class data.frame, RasterLayer or RasterStack in which to look for variables with which to predict."
     )
   ),
   outputObjects = createsOutput(
-    objectName = "fireSense_FrequencyPredicted",
+    objectName = "fireSense_IgnitionPredicted",
     objectClass = NA_character_,
     desc = "An object whose class depends on that of the inputs, could be a RasterLayer or a vector of type numeric."
   )
@@ -78,7 +78,7 @@ defineModule(sim, list(
 ## event types
 #   - type `init` is required for initialiazation
 
-doEvent.fireSense_FrequencyPredict = function(sim, eventTime, eventType, debug = FALSE)
+doEvent.fireSense_IgnitionPredict = function(sim, eventTime, eventType, debug = FALSE)
 {
   moduleName <- current(sim)$moduleName
   
@@ -117,8 +117,8 @@ frequencyPredictRun <- function(sim)
 {
   moduleName <- current(sim)$moduleName
   
-  if (!is(sim[[P(sim)$modelObjName]], "fireSense_FrequencyFit"))
-    stop(moduleName, "> '", P(sim)$modelObjName, "' should be of class 'fireSense_FrequencyFit")
+  if (!is(sim[[P(sim)$modelObjName]], "fireSense_IgnitionFit"))
+    stop(moduleName, "> '", P(sim)$modelObjName, "' should be of class 'fireSense_IgnitionFit")
   
   ## Toolbox: set of functions used internally by frequencyPredictRun
     frequencyPredictRaster <- function(model, data, sim)
@@ -189,7 +189,7 @@ frequencyPredictRun <- function(sim)
 
   if (all(unlist(lapply(allxy, function(x) is.vector(mod_env[[x]])))))
   {
-    sim$fireSense_FrequencyPredicted <- (
+    sim$fireSense_IgnitionPredicted <- (
       formula %>%
         model.matrix(mod_env) %>%
         `%*%` (sim[[P(sim)$modelObjName]]$coef) %>%
@@ -199,7 +199,7 @@ frequencyPredictRun <- function(sim)
   } 
   else if (all(unlist(lapply(allxy, function(x) is(mod_env[[x]], "RasterLayer"))))) 
   {
-    sim$fireSense_FrequencyPredicted <- mget(allxy, envir = mod_env, inherits = FALSE) %>%
+    sim$fireSense_IgnitionPredicted <- mget(allxy, envir = mod_env, inherits = FALSE) %>%
         stack %>% predict(model = formula, fun = frequencyPredictRaster, na.rm = TRUE, sim = sim)
   } 
   else 
@@ -237,8 +237,8 @@ frequencyPredictSave <- function(sim)
   currentTime <- time(sim, timeUnit)
 
   raster::writeRaster(
-    sim$fireSense_FrequencyPredicted, 
-    filename = file.path(paths(sim)$out, paste0("fireSense_FrequencyPredicted_", timeUnit, currentTime, ".tif"))
+    sim$fireSense_IgnitionPredicted, 
+    filename = file.path(paths(sim)$out, paste0("fireSense_IgnitionPredicted_", timeUnit, currentTime, ".tif"))
   )
   
   invisible(sim)
