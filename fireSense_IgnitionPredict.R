@@ -116,8 +116,7 @@ doEvent.fireSense_IgnitionPredict = function(sim, eventTime, eventType, debug = 
 frequencyPredictRun <- function(sim) 
 {
   moduleName <- current(sim)$moduleName
-  
-  if (!is(sim[[P(sim)$modelObjName]], "fireSense_IgnitionFit"))
+  if (all(!is(sim[[P(sim)$modelObjName]], "fireSense_IgnitionFit"), !is(sim[[P(sim)$modelObjName]], "fireSense_FrequencyFit")))
     stop(moduleName, "> '", P(sim)$modelObjName, "' should be of class 'fireSense_IgnitionFit")
   
   ## Toolbox: set of functions used internally by frequencyPredictRun
