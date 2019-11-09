@@ -34,13 +34,15 @@ defineModule(sim, list(
                     desc = "optional named vector or list of character strings
                             mapping one or more variables in the model formula
                             to those in `data` objects."),
-    defineParameter("rescalFactor", "numeric", 1, 
+    defineParameter("rescalFactor", "numeric", (250 / 10000)^2, 
                     desc = "rescale predicted rates of fire counts at any given 
                             temporal and spatial resolutions by a factor 
                             `rescalFactor = new_res / old_res`. `rescalFactor`
                             is the ratio between the data aggregation scale used
                             for model fitting and the scale at which predictions
-                            are to be made."),
+                            are to be made. fireSense_IgnitionFit was fitted using 
+                            the 10km resolution. If predictions are made at the 250m 
+                            resolution (default here) we convert it in this way"),
     defineParameter(name = ".runInitialTime", class = "numeric",
                     default = start(sim),
                     desc = "when to start this module? By default, the start 
