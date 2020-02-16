@@ -23,7 +23,7 @@ defineModule(sim, list(
                             describing the statistical model used for
                             predictions."),
     defineParameter(name = "data", class = "character",
-                      default = "dataFireSense_IgnitionPredict",
+                    default = "dataFireSense_IgnitionPredict",
                     desc = "a character vector indicating the names of objects 
                             in the `simList` environment in which to look for 
                             variables present in the model formula. `data`
@@ -34,10 +34,10 @@ defineModule(sim, list(
                     desc = "optional named vector or list of character strings
                             mapping one or more variables in the model formula
                             to those in `data` objects."),
-    defineParameter("rescalFactor", "numeric", (250 / 10000)^2, 
+    defineParameter("rescaleFactor", "numeric", (250 / 10000)^2, 
                     desc = "rescale predicted rates of fire counts at any given 
                             temporal and spatial resolutions by a factor 
-                            `rescalFactor = new_res / old_res`. `rescalFactor`
+                            `rescaleFactor = new_res / old_res`. `rescaleFactor`
                             is the ratio between the data aggregation scale used
                             for model fitting and the scale at which predictions
                             are to be made. fireSense_IgnitionFit was fitted using 
@@ -128,7 +128,7 @@ frequencyPredictRun <- function(sim)
         model.matrix(c(data, sim[[P(sim)$modelObjName]]$knots)) %>%
         `%*%` (sim[[P(sim)$modelObjName]]$coef) %>%
         drop %>% sim[[P(sim)$modelObjName]]$family$linkinv(.) %>%
-        `*` (P(sim)$rescalFactor)
+        `*` (P(sim)$rescaleFactor)
     }
     
   ## Handling piecewise terms in a formula
@@ -193,9 +193,9 @@ frequencyPredictRun <- function(sim)
     sim$fireSense_IgnitionPredicted <- (
       formula %>%
         model.matrix(mod_env) %>%
-        `%*%` (sim[[P(sim)$modelObjName]]$coef) %>%
+        `%*%`(sim[[P(sim)$modelObjName]]$coef) %>%
         drop %>% sim[[P(sim)$modelObjName]]$family$linkinv(.)
-    ) %>% `*` (P(sim)$rescalFactor)
+    ) %>% `*`(P(sim)$rescaleFactor)
     
   } 
   else if (all(unlist(lapply(allxy, function(x) is(mod_env[[x]], "RasterLayer"))))) 
@@ -210,7 +210,7 @@ frequencyPredictRun <- function(sim)
     if (s <- sum(missing))
       stop(
         moduleName, "> '", allxy[missing][1L], "'",
-        if (s > 1) paste0(" (and ", s-1L, " other", if (s>2) "s", ")"),
+        if (s > 1) paste0(" (and ", s - 1L, " other", if (s > 2) "s", ")"),
         " not found in data objects."
       )
 
@@ -229,7 +229,6 @@ frequencyPredictRun <- function(sim)
   
   invisible(sim)
 }
-
 
 frequencyPredictSave <- function(sim)
 {
