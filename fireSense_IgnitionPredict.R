@@ -118,9 +118,10 @@ doEvent.fireSense_IgnitionPredict = function(sim, eventTime, eventType, debug = 
 frequencyPredictRun <- function(sim) 
 {
   moduleName <- current(sim)$moduleName
-  if (all(!is(sim[[P(sim)$modelObjName]], "fireSense_IgnitionFit"), !is(sim[[P(sim)$modelObjName]], "fireSense_FrequencyFit")))
-    stop(moduleName, "> '", P(sim)$modelObjName, "' should be of class 'fireSense_IgnitionFit")
-  
+  if (all(!is(sim[[P(sim)$modelObjName]], "fireSense_IgnitionFit"), !is(sim[[P(sim)$modelObjName]], "fireSense_FrequencyFit"))){
+    stop(moduleName, "> '", P(sim)$modelObjName, "' should be of class 'fireSense_IgnitionFit' or 'fireSense_FrequencyFit'")
+}
+
   ## Toolbox: set of functions used internally by frequencyPredictRun
     frequencyPredictRaster <- function(model, data, sim)
     {
@@ -137,7 +138,7 @@ frequencyPredictRun <- function(sim)
   # Load inputs in the data container
   # list2env(as.list(envir(sim)), envir = mod)
 
-  mod_env <- new.env()
+  mod_env <- new.env(parent = emptyenv())
   
   for (x in P(sim)$data)
   {
@@ -200,8 +201,9 @@ frequencyPredictRun <- function(sim)
   } 
   else if (all(unlist(lapply(allxy, function(x) is(mod_env[[x]], "RasterLayer"))))) 
   {
+    browser() # Implement snapping
     sim$fireSense_IgnitionPredicted <- mget(allxy, envir = mod_env, inherits = FALSE) %>%
-        stack %>% predict(model = formula, fun = frequencyPredictRaster, na.rm = TRUE, sim = sim)
+        stack %>% raster::predict(model = formula, fun = frequencyPredictRaster, na.rm = TRUE, sim = sim)
   } 
   else 
   {
