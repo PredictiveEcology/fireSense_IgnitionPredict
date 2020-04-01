@@ -17,15 +17,15 @@ defineModule(sim, list(
   reqdPkgs = list("magrittr", "raster"),
   parameters = rbind(
     #defineParameter("paramName", "paramClass", default, min, max, "parameter description")),
-    defineParameter(name = "modelObjName", class = "character", 
+    defineParameter(name = "modelObjName", class = "character",
                     default = "fireSense_IgnitionFitted",
                     desc = "name of the object of class fireSense_IgnitionFit
                             describing the statistical model used for
                             predictions."),
     defineParameter(name = "data", class = "character",
                     default = "dataFireSense_IgnitionPredict",
-                    desc = "a character vector indicating the names of objects 
-                            in the `simList` environment in which to look for 
+                    desc = "a character vector indicating the names of objects
+                            in the `simList` environment in which to look for
                             variables present in the model formula. `data`
                             objects can be data.frames, RasterLayers, RasterStacks or
                             RasterBricks. However, data.frames cannot be mixed
@@ -34,25 +34,25 @@ defineModule(sim, list(
                     desc = "optional named vector or list of character strings
                             mapping one or more variables in the model formula
                             to those in `data` objects."),
-    defineParameter("rescaleFactor", "numeric", (250 / 10000)^2, 
-                    desc = "rescale predicted rates of fire counts at any given 
-                            temporal and spatial resolutions by a factor 
+    defineParameter("rescaleFactor", "numeric", (250 / 10000)^2,
+                    desc = "rescale predicted rates of fire counts at any given
+                            temporal and spatial resolutions by a factor
                             `rescaleFactor = new_res / old_res`. `rescaleFactor`
                             is the ratio between the data aggregation scale used
                             for model fitting and the scale at which predictions
-                            are to be made. fireSense_IgnitionFit was fitted using 
-                            the 10km resolution. If predictions are made at the 250m 
+                            are to be made. fireSense_IgnitionFit was fitted using
+                            the 10km resolution. If predictions are made at the 250m
                             resolution (default here) we convert it in this way"),
     defineParameter(name = ".runInitialTime", class = "numeric",
                     default = start(sim),
-                    desc = "when to start this module? By default, the start 
+                    desc = "when to start this module? By default, the start
                             time of the simulation."),
-    defineParameter(name = ".runInterval", class = "numeric", default = 1, 
+    defineParameter(name = ".runInterval", class = "numeric", default = 1,
                     desc = "optional. Interval between two runs of this module,
                             expressed in units of simulation time. By default, 1 year."),
-    defineParameter(name = ".saveInitialTime", class = "numeric", default = NA, 
+    defineParameter(name = ".saveInitialTime", class = "numeric", default = NA,
                     desc = "optional. When to start saving output to a file."),
-    defineParameter(name = ".saveInterval", class = "numeric", default = NA, 
+    defineParameter(name = ".saveInterval", class = "numeric", default = NA,
                     desc = "optional. Interval between save events."),
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
@@ -83,24 +83,23 @@ defineModule(sim, list(
 doEvent.fireSense_IgnitionPredict = function(sim, eventTime, eventType, debug = FALSE)
 {
   moduleName <- current(sim)$moduleName
-  
+
   switch(
     eventType,
     init = {
       sim <- scheduleEvent(sim, eventTime = P(sim)$.runInitialTime, moduleName, "run")
-      
+
       if (!is.na(P(sim)$.saveInitialTime))
         sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, moduleName, "save", .last())
     },
-    run = { 
-      sim <- frequencyPredictRun(sim) 
-      
+    run = {
+      sim <- frequencyPredictRun(sim)
       if (!is.na(P(sim)$.runInterval))
         sim <- scheduleEvent(sim, time(sim) + P(sim)$.runInterval, moduleName, "run")
     },
     save = {
-      sim <- frequencyPredictSave(sim) 
-      
+      sim <- frequencyPredictSave(sim)
+
       if (!is.na(P(sim)$.saveInterval))
         sim <- scheduleEvent(sim, time(sim) + P(sim)$.saveInterval, moduleName, "save", .last())
     },
@@ -115,12 +114,12 @@ doEvent.fireSense_IgnitionPredict = function(sim, eventTime, eventType, debug = 
 #   - `modulenameInit()` function is required for initiliazation;
 #   - keep event functions short and clean, modularize by calling subroutines from section below.
 
-frequencyPredictRun <- function(sim) 
+frequencyPredictRun <- function(sim)
 {
   moduleName <- current(sim)$moduleName
   if (all(!is(sim[[P(sim)$modelObjName]], "fireSense_IgnitionFit"), !is(sim[[P(sim)$modelObjName]], "fireSense_FrequencyFit")))
     stop(moduleName, "> '", P(sim)$modelObjName, "' should be of class 'fireSense_IgnitionFit")
-  
+
   ## Toolbox: set of functions used internally by frequencyPredictRun
     frequencyPredictRaster <- function(model, data, sim)
     {
@@ -130,42 +129,42 @@ frequencyPredictRun <- function(sim)
         drop %>% sim[[P(sim)$modelObjName]]$family$linkinv(.) %>%
         `*` (P(sim)$rescaleFactor)
     }
-    
+
   ## Handling piecewise terms in a formula
   pw <- function(v, k) pmax(v - k, 0)
-  
+
   # Load inputs in the data container
   # list2env(as.list(envir(sim)), envir = mod)
 
   mod_env <- new.env()
-  
+
   for (x in P(sim)$data)
   {
-    if (!is.null(sim[[x]])) 
+    if (!is.null(sim[[x]]))
     {
-      if (is.data.frame(sim[[x]])) 
+      if (is.data.frame(sim[[x]]))
       {
         list2env(sim[[x]], envir = mod_env)
-      } 
+      }
       else if (is(sim[[x]], "RasterStack") || is(sim[[x]], "RasterBrick"))
       {
         list2env(setNames(unstack(sim[[x]]), names(sim[[x]])), envir = mod_env)
-      } 
+      }
       else if (is(sim[[x]], "RasterLayer"))
       {
         mod_env[[x]] <- sim[[x]]
-      } 
+      }
       else stop(moduleName, "> '", x, "' is not a data.frame, a RasterLayer, a RasterStack or a RasterBrick.")
     }
   }
-  
+
   # Define pw() within the data container
   mod_env$pw <- pw
 
   terms <- delete.response(terms.formula(sim[[P(sim)$modelObjName]]$formula))
 
   ## Mapping variables names to data
-  if (!is.null(P(sim)$mapping)) 
+  if (!is.null(P(sim)$mapping))
   {
     for (i in 1:length(P(sim)$mapping))
     {
@@ -180,12 +179,12 @@ frequencyPredictRun <- function(sim)
   formula <- reformulate(attr(terms, "term.labels"), intercept = attr(terms, "intercept"))
   allxy <- all.vars(formula)
 
-  if (!is.null(sim[[P(sim)$modelObjName]]$knots)) 
+  if (!is.null(sim[[P(sim)$modelObjName]]$knots))
   {
     list2env(as.list(sim[[P(sim)$modelObjName]]$knots), envir = mod_env)
     kNames <- names(sim[[P(sim)$modelObjName]]$knots)
     allxy <- allxy[!allxy %in% kNames]
-  } 
+  }
   else kNames <- NULL
 
   if (all(unlist(lapply(allxy, function(x) is.vector(mod_env[[x]])))))
@@ -196,17 +195,17 @@ frequencyPredictRun <- function(sim)
         `%*%`(sim[[P(sim)$modelObjName]]$coef) %>%
         drop %>% sim[[P(sim)$modelObjName]]$family$linkinv(.)
     ) %>% `*`(P(sim)$rescaleFactor)
-    
-  } 
-  else if (all(unlist(lapply(allxy, function(x) is(mod_env[[x]], "RasterLayer"))))) 
+
+  }
+  else if (all(unlist(lapply(allxy, function(x) is(mod_env[[x]], "RasterLayer")))))
   {
     sim$fireSense_IgnitionPredicted <- mget(allxy, envir = mod_env, inherits = FALSE) %>%
         stack %>% predict(model = formula, fun = frequencyPredictRaster, na.rm = TRUE, sim = sim)
-  } 
-  else 
+  }
+  else
   {
     missing <- !allxy %in% ls(mod_env, all.names = TRUE)
-    
+
     if (s <- sum(missing))
       stop(
         moduleName, "> '", allxy[missing][1L], "'",
@@ -215,18 +214,18 @@ frequencyPredictRun <- function(sim)
       )
 
     badClass <- unlist(lapply(allxy, function(x) is.vector(mod_env[[x]]) || is(mod_env[[x]], "RasterLayer")))
-    
+
     if (any(badClass))
     {
       stop(moduleName, "> Data objects of class 'data.frame' cannot be mixed with objects of other classes.")
-    } 
+    }
     else
     {
       stop(moduleName, "> '", paste(allxy[which(!badClass)], collapse = "', '"),
            "' does not match a data.frame's column, a RasterLayer or a layer from a RasterStack or RasterBrick.")
     }
   }
-  
+
   invisible(sim)
 }
 
@@ -237,9 +236,9 @@ frequencyPredictSave <- function(sim)
   currentTime <- time(sim, timeUnit)
 
   raster::writeRaster(
-    sim$fireSense_IgnitionPredicted, 
+    sim$fireSense_IgnitionPredicted,
     filename = file.path(paths(sim)$out, paste0("fireSense_IgnitionPredicted_", timeUnit, currentTime, ".tif"))
   )
-  
+
   invisible(sim)
 }
