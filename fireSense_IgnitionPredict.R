@@ -201,7 +201,6 @@ frequencyPredictRun <- function(sim)
   } 
   else if (all(unlist(lapply(allxy, function(x) is(mod_env[[x]], "RasterLayer"))))) 
   {
-    browser() # Implement snapping
     sim$fireSense_IgnitionPredicted <- mget(allxy, envir = mod_env, inherits = FALSE) %>%
         stack %>% raster::predict(model = formula, fun = frequencyPredictRaster, na.rm = TRUE, sim = sim)
   } 
