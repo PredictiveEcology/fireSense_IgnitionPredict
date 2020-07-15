@@ -1,5 +1,3 @@
-# Everything in this file gets sourced during simInit, and all functions and objects
-# are put into the simList. To use objects and functions, use sim$xxx.
 defineModule(sim, list(
   name = "fireSense_IgnitionPredict",
   description = "Predict rates of fire frequency from a model fitted using the
@@ -16,7 +14,6 @@ defineModule(sim, list(
   documentation = list("README.txt", "fireSense_IgnitionPredict.Rmd"),
   reqdPkgs = list("magrittr", "raster"),
   parameters = rbind(
-    #defineParameter("paramName", "paramClass", default, min, max, "parameter description")),
     defineParameter(name = "modelObjName", class = "character",
                     default = "fireSense_IgnitionFitted",
                     desc = "name of the object of class fireSense_IgnitionFit
@@ -77,9 +74,6 @@ defineModule(sim, list(
   )
 ))
 
-## event types
-#   - type `init` is required for initialiazation
-
 doEvent.fireSense_IgnitionPredict = function(sim, eventTime, eventType, debug = FALSE)
 {
   moduleName <- current(sim)$moduleName
@@ -109,21 +103,14 @@ doEvent.fireSense_IgnitionPredict = function(sim, eventTime, eventType, debug = 
   invisible(sim)
 }
 
-## event functions
-#   - follow the naming convention `modulenameEventtype()`;
-#   - `modulenameInit()` function is required for initiliazation;
-#   - keep event functions short and clean, modularize by calling subroutines from section below.
-
-frequencyPredictRun <- function(sim)
-{
+frequencyPredictRun <- function(sim) {
   moduleName <- current(sim)$moduleName
   if (all(!is(sim[[P(sim)$modelObjName]], "fireSense_IgnitionFit"), !is(sim[[P(sim)$modelObjName]], "fireSense_FrequencyFit"))){
     stop(moduleName, "> '", P(sim)$modelObjName, "' should be of class 'fireSense_IgnitionFit' or 'fireSense_FrequencyFit'")
 }
 
   ## Toolbox: set of functions used internally by frequencyPredictRun
-    frequencyPredictRaster <- function(model, data, sim)
-    {
+    frequencyPredictRaster <- function(model, data, sim) {
       model %>%
         model.matrix(c(data, sim[[P(sim)$modelObjName]]$knots)) %>%
         `%*%` (sim[[P(sim)$modelObjName]]$coef) %>%
@@ -135,27 +122,18 @@ frequencyPredictRun <- function(sim)
   pw <- function(v, k) pmax(v - k, 0)
 
   # Load inputs in the data container
-  # list2env(as.list(envir(sim)), envir = mod)
-
+  # list2env(as.list(envir(sim)), envir = mod)  
   mod_env <- new.env(parent = emptyenv())
-  
-  for (x in P(sim)$data)
-  {
-    if (!is.null(sim[[x]]))
-    {
-      if (is.data.frame(sim[[x]]))
-      {
+  for (x in P(sim)$data) {
+    if (!is.null(sim[[x]])) {
+      if (is.data.frame(sim[[x]])) {
         list2env(sim[[x]], envir = mod_env)
-      }
-      else if (is(sim[[x]], "RasterStack") || is(sim[[x]], "RasterBrick"))
-      {
+      } else if (is(sim[[x]], "RasterStack") || is(sim[[x]], "RasterBrick")) {
         list2env(setNames(unstack(sim[[x]]), names(sim[[x]])), envir = mod_env)
-      }
-      else if (is(sim[[x]], "RasterLayer"))
-      {
+      } else if (is(sim[[x]], "RasterLayer")) {
         mod_env[[x]] <- sim[[x]]
-      }
-      else stop(moduleName, "> '", x, "' is not a data.frame, a RasterLayer, a RasterStack or a RasterBrick.")
+      } else stop(moduleName, "> '", x, "' is not a data.frame, a RasterLayer, 
+                  a RasterStack or a RasterBrick.")
     }
   }
 
@@ -165,10 +143,8 @@ frequencyPredictRun <- function(sim)
   terms <- delete.response(terms.formula(sim[[P(sim)$modelObjName]]$formula))
 
   ## Mapping variables names to data
-  if (!is.null(P(sim)$mapping))
-  {
-    for (i in 1:length(P(sim)$mapping))
-    {
+  if (!is.null(P(sim)$mapping)) {
+    for (i in 1:length(P(sim)$mapping)) {
       attr(terms, "term.labels") %<>% gsub(
         pattern = names(P(sim)$mapping[i]),
         replacement = P(sim)$mapping[[i]],
@@ -180,31 +156,30 @@ frequencyPredictRun <- function(sim)
   formula <- reformulate(attr(terms, "term.labels"), intercept = attr(terms, "intercept"))
   allxy <- all.vars(formula)
 
-  if (!is.null(sim[[P(sim)$modelObjName]]$knots))
-  {
+  if (!is.null(sim[[P(sim)$modelObjName]]$knots)) {
     list2env(as.list(sim[[P(sim)$modelObjName]]$knots), envir = mod_env)
     kNames <- names(sim[[P(sim)$modelObjName]]$knots)
     allxy <- allxy[!allxy %in% kNames]
-  }
-  else kNames <- NULL
+  } else kNames <- NULL
 
-  if (all(unlist(lapply(allxy, function(x) is.vector(mod_env[[x]])))))
-  {
+  if (all(unlist(lapply(allxy, function(x) is.vector(mod_env[[x]]))))) {
     sim$fireSense_IgnitionPredicted <- (
       formula %>%
         model.matrix(mod_env) %>%
         `%*%`(sim[[P(sim)$modelObjName]]$coef) %>%
         drop %>% sim[[P(sim)$modelObjName]]$family$linkinv(.)
     ) %>% `*`(P(sim)$rescaleFactor)
-
-  }
-  else if (all(unlist(lapply(allxy, function(x) is(mod_env[[x]], "RasterLayer")))))
-  {
-    sim$fireSense_IgnitionPredicted <- mget(allxy, envir = mod_env, inherits = FALSE) %>%
-        stack %>% raster::predict(model = formula, fun = frequencyPredictRaster, na.rm = TRUE, sim = sim)
-  } 
-  else 
-  {
+  } else if (all(unlist(lapply(allxy, function(x) is(mod_env[[x]], "RasterLayer"))))) {
+    covList <- mget(allxy, envir = mod_env, inherits = FALSE)
+    tryCatch({
+      raster::stack(covList)
+    }, error = function(e){
+      stop("At least one of the covariate rasters does not align with the others. Please debug your inputs. 
+              Consider using a function like reproducible::postProcess on your layers to make sure these align.")
+    })
+    sim$fireSense_IgnitionPredicted <- stack(covList) %>% 
+      raster::predict(model = formula, fun = frequencyPredictRaster, na.rm = TRUE, sim = sim)
+  } else {
     missing <- !allxy %in% ls(mod_env, all.names = TRUE)
 
     if (s <- sum(missing))
@@ -216,12 +191,9 @@ frequencyPredictRun <- function(sim)
 
     badClass <- unlist(lapply(allxy, function(x) is.vector(mod_env[[x]]) || is(mod_env[[x]], "RasterLayer")))
 
-    if (any(badClass))
-    {
+    if (any(badClass)) {
       stop(moduleName, "> Data objects of class 'data.frame' cannot be mixed with objects of other classes.")
-    }
-    else
-    {
+    } else {
       stop(moduleName, "> '", paste(allxy[which(!badClass)], collapse = "', '"),
            "' does not match a data.frame's column, a RasterLayer or a layer from a RasterStack or RasterBrick.")
     }
