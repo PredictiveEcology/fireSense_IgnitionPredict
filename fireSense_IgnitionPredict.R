@@ -140,7 +140,7 @@ frequencyPredictRun <- function(sim) {
   # Define pw() within the data container
   mod_env$pw <- pw
 
-  terms <- delete.response(terms.formula(sim[[P(sim)$modelObjName]]$formula))
+  terms <- delete.response(terms.formula(sim[[P(sim)$modelObjName]][["formula"]]))
 
   ## Mapping variables names to data
   if (!is.null(P(sim)$mapping)) {
@@ -153,8 +153,8 @@ frequencyPredictRun <- function(sim) {
     }
   }
 
-  formula <- reformulate(attr(terms, "term.labels"), intercept = attr(terms, "intercept"))
-  allxy <- all.vars(formula)
+  formula_fire <- reformulate(attr(terms, "term.labels"), intercept = attr(terms, "intercept"))
+  allxy <- all.vars(formula_fire)
 
   if (!is.null(sim[[P(sim)$modelObjName]]$knots)) {
     list2env(as.list(sim[[P(sim)$modelObjName]]$knots), envir = mod_env)
@@ -164,7 +164,7 @@ frequencyPredictRun <- function(sim) {
 
   if (all(unlist(lapply(allxy, function(x) is.vector(mod_env[[x]]))))) {
     sim$fireSense_IgnitionPredicted <- (
-      formula %>%
+      formula_fire %>%
         model.matrix(mod_env) %>%
         `%*%`(sim[[P(sim)$modelObjName]]$coef) %>%
         drop %>% sim[[P(sim)$modelObjName]]$family$linkinv(.)
@@ -177,8 +177,8 @@ frequencyPredictRun <- function(sim) {
       stop("At least one of the covariate rasters does not align with the others. Please debug your inputs. 
               Consider using a function like reproducible::postProcess on your layers to make sure these align.")
     })
-    sim$fireSense_IgnitionPredicted <- stack(covList) %>% 
-      raster::predict(model = formula, fun = frequencyPredictRaster, na.rm = TRUE, sim = sim)
+    sim$fireSense_IgnitionPredicted <- raster::stack(covList) %>% 
+      raster::predict(model = formula_fire, fun = frequencyPredictRaster, na.rm = TRUE, sim = sim)
   } else {
     missing <- !allxy %in% ls(mod_env, all.names = TRUE)
 
