@@ -81,7 +81,7 @@ doEvent.fireSense_IgnitionPredict = function(sim, eventTime, eventType, debug = 
   switch(
     eventType,
     init = {
-      sim <- scheduleEvent(sim, eventTime = P(sim)$.runInitialTime, moduleName, "run")
+      sim <- scheduleEvent(sim, eventTime = P(sim)$.runInitialTime, moduleName, "run", eventPriority = 5.12)
 
       if (!is.na(P(sim)$.saveInitialTime))
         sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, moduleName, "save", .last())
@@ -89,7 +89,7 @@ doEvent.fireSense_IgnitionPredict = function(sim, eventTime, eventType, debug = 
     run = {
       sim <- frequencyPredictRun(sim)
       if (!is.na(P(sim)$.runInterval))
-        sim <- scheduleEvent(sim, time(sim) + P(sim)$.runInterval, moduleName, "run")
+        sim <- scheduleEvent(sim, time(sim) + P(sim)$.runInterval, moduleName, "run", eventPriority = 5.12)
     },
     save = {
       sim <- frequencyPredictSave(sim)
