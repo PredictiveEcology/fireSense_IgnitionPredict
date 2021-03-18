@@ -108,18 +108,6 @@ IgnitionPredictRun <- function(sim) {
 
   terms <- delete.response(terms.formula(sim$fireSense_IgnitionFitted[["formula"]]))
 
-  #TODO: get rid of this mapping line (which is deprecated), kept for reference
-  ## Mapping variables names to data
-  # if (!is.null(P(sim)$mapping)) {
-  #   for (i in 1:length(P(sim)$mapping)) {
-  #     attr(terms, "term.labels") %<>% gsub(
-  #       pattern = names(P(sim)$mapping[i]),
-  #       replacement = P(sim)$mapping[[i]],
-  #       x = .
-  #     )
-  #   }
-  # }
-
   formula_fire <- reformulate(attr(terms, "term.labels"), intercept = attr(terms, "intercept"))
   allxy <- all.vars(formula_fire)
 
