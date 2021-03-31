@@ -13,7 +13,7 @@ defineModule(sim, list(
   citation = list("citation.bib"),
   documentation = list("README.txt", "fireSense_IgnitionPredict.Rmd"),
   reqdPkgs = list("magrittr", "raster"),
-  parameters = rbind(
+  parameters = bindrows(
     # defineParameter("rescaleFactor", "numeric", (250 / 10000)^2,
     #                 desc = paste("rescale predicted rates of fire counts at any given temporal and spatial",
     #                              "resolutions by a factor `rescaleFactor = new_res / old_res`.",
@@ -31,7 +31,7 @@ defineModule(sim, list(
                     desc = "optional. Interval between save events."),
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
-  inputObjects = rbind(
+  inputObjects = bindrows(
     expectsInput(objectName = "fireSense_IgnitionFitted", objectClass = "fireSense_IgnitionFit",
                  desc = "An object of class fireSense_IgnitionFit created with the fireSense_IgnitionFit module."),
     expectsInput(objectName = "fireSense_IgnitionAndEscapeCovariates", objectClass = "data.frame",
@@ -45,7 +45,7 @@ defineModule(sim, list(
                               "for model fitting and the scale at which predictions are to be made",
                               "If not provided, defaults to (250 / 10000)^2"))
   ),
-  outputObjects = rbind(
+  outputObjects = bindrows(
     createsOutput(objectName = "fireSense_IgnitionProbRaster", objectClass = "RasterLayer",
                   desc = "a raster layer of ignition probabilities")
   )
