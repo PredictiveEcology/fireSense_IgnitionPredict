@@ -82,18 +82,19 @@ doEvent.fireSense_IgnitionPredict = function(sim, eventTime, eventType, debug = 
 
 IgnitionPredictRun <- function(sim) {
 
- moduleName <- currentModule(sim)
- fireSense_IgnitionCovariates <- copy(sim$fireSense_IgnitionAndEscapeCovariates)
- #TODO: IE wrote this - please review it
- if (!is.null(sim$fireSense_IgnitionFitted$rescales)) {
-   for (name in names(sim$fireSense_IgnitionFitted$rescales)) {
-     op <- eval(parse(text = sim$fireSense_IgnitionFitted$rescales[[name]]),
-                env = fireSense_IgnitionCovariates)
-     fireSense_IgnitionCovariates[, eval(name) := op]
-   }
- }
+  moduleName <- currentModule(sim)
 
- ## Toolbox: set of functions used internally by IgnitionPredictRun
+  fireSense_IgnitionCovariates <- copy(sim$fireSense_IgnitionAndEscapeCovariates)
+  #TODO: IE wrote this - please review it
+  if (!is.null(sim$fireSense_IgnitionFitted$rescales)) {
+    for (name in names(sim$fireSense_IgnitionFitted$rescales)) {
+      op <- eval(parse(text = sim$fireSense_IgnitionFitted$rescales[[name]]),
+                 env = fireSense_IgnitionCovariates)
+      fireSense_IgnitionCovariates[, eval(name) := op]
+    }
+  }
+
+  ## Toolbox: set of functions used internally by IgnitionPredictRun
   IgnitionPredictRaster <- function(model, data, sim) {
     model %>%
       model.matrix(c(data, sim$knots)) %>%
