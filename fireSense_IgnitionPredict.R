@@ -14,11 +14,11 @@ defineModule(sim, list(
   documentation = list("README.txt", "fireSense_IgnitionPredict.Rmd"),
   reqdPkgs = list("magrittr", "raster"),
   parameters = rbind(
-    defineParameter("rescaleFactor", "numeric", (250 / 10000)^2,
-                    desc = paste("rescale predicted rates of fire counts at any given temporal and spatial",
-                                 "resolutions by a factor `rescaleFactor = new_res / old_res`.",
-                                 "`rescaleFactor` is the ratio between the data aggregation scale used",
-                                 "for model fitting and the scale at which predictions are to be made")),
+    # defineParameter("rescaleFactor", "numeric", (250 / 10000)^2,
+    #                 desc = paste("rescale predicted rates of fire counts at any given temporal and spatial",
+    #                              "resolutions by a factor `rescaleFactor = new_res / old_res`.",
+    #                              "`rescaleFactor` is the ratio between the data aggregation scale used",
+    #                              "for model fitting and the scale at which predictions are to be made")),
     defineParameter(name = ".runInitialTime", class = "numeric", default = start(sim),
                     desc = "when to start this module? By default, the start
                             time of the simulation."),
@@ -37,7 +37,13 @@ defineModule(sim, list(
     expectsInput(objectName = "fireSense_IgnitionAndEscapeCovariates", objectClass = "data.frame",
                  desc = "An object of class RasterStack or data.frame with prediction variables"),
     expectsInput(objectName = "flammableRTM", objectClass = "RasterLayer",
-                 desc = "a raster with values of 1 for every flammable pixel")
+                 desc = "a raster with values of 1 for every flammable pixel"),
+    expectsInput(objectName = "rescaleFactor", objectClass = "numeric",
+                 desc = paste("rescale predicted rates of fire counts at any given temporal and spatial",
+                              "resolutions by a factor `rescaleFactor = new_res / old_res`.",
+                              "`rescaleFactor` is the ratio between the data aggregation scale used",
+                              "for model fitting and the scale at which predictions are to be made",
+                              "If not provided, defaults to (250 / 10000)^2"))
   ),
   outputObjects = rbind(
     createsOutput(objectName = "fireSense_IgnitionProbRaster", objectClass = "RasterLayer",
@@ -93,7 +99,7 @@ IgnitionPredictRun <- function(sim) {
       model.matrix(c(data, sim$knots)) %>%
       `%*%` (sim$fireSense_IgnitionFitted$coef) %>%
       drop %>% sim$fireSense_IgnitionFitted$family$linkinv(.) %>%
-      `*` (P(sim)$rescaleFactor)
+      `*` (sim$rescaleFactor)
   }
 
   ## Handling piecewise terms in a formula
@@ -130,7 +136,7 @@ IgnitionPredictRun <- function(sim) {
         model.matrix(mod_env) %>%
         `%*%`(sim$fireSense_IgnitionFitted$coef) %>%
         drop %>% sim$fireSense_IgnitionFitted$family$linkinv(.)
-    ) %>% `*`(P(sim)$rescaleFactor)
+    ) %>% `*`(sim$rescaleFactor)
   } else if (all(unlist(lapply(allxy, function(x) is(mod_env[[x]], "RasterLayer"))))) {
     covList <- mget(allxy, envir = mod_env, inherits = FALSE)
     tryCatch({
@@ -182,4 +188,16 @@ IgnitionPredictSave <- function(sim) {
   )
 
   invisible(sim)
+}
+
+.inputObjects <- function(sim) {
+  # cacheTags <- c(currentModule(sim), "function:.inputObjects")
+  # dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
+  # message(currentModule(sim), ": using dataPath '", dPath, "'.")
+
+  if (!suppliedElsewhere("rescaleFactor", sim)) {
+    sim$rescaleFactor <- (250 / 10000)^2
+  }
+
+  return(invisible(sim))
 }
