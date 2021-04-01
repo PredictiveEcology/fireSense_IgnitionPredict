@@ -88,7 +88,7 @@ doEvent.fireSense_IgnitionPredict = function(sim, eventTime, eventType, debug = 
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
   )
-  invisible(sim)
+  return(invisible(sim))
 }
 
 IgnitionPredictRun <- function(sim) {
@@ -260,7 +260,7 @@ IgnitionPredictRun <- function(sim) {
     sim$fireSense_IgnitionPredicted <- IgnitionRas
   }
 
-  invisible(sim)
+  return(invisible(sim))
 }
 
 IgnitionPredictSave <- function(sim) {
@@ -273,7 +273,7 @@ IgnitionPredictSave <- function(sim) {
     filename = file.path(paths(sim)$out, paste0("fireSense_IgnitionPredicted_", timeUnit, currentTime, ".tif"))
   )
 
-  invisible(sim)
+  return(invisible(sim))
 }
 
 .inputObjects <- function(sim) {
