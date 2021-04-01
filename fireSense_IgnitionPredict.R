@@ -171,11 +171,30 @@ IgnitionPredictRun <- function(sim) {
   #add knots
   #TODO: I'm not 100% sure this works with a linear model only
   if (!is.null(sim$fireSense_IgnitionFitted$knots)){
-    for (knot in names(sim$fireSense_IgnitionFitted$knots)) {
-      fireSense_IgnitionCovariates[, eval(knot) := sim$fireSense_IgnitionFitted$knots[knot]]
+    if (class(fireSense_IgnitionCovariates) == "RasterStack") {
+      ## make a template mask-type raster with 1s where there are no NAs
+      rasTemp <- sum(!is.na(fireSense_IgnitionCovariates))
+      rasTemp[rasTemp[] == 0] <- NA
+      rasTemp[!is.na(rasTemp)] <- 1
+
+      ## make new raster stack with knot values
+      rasStk <- sapply(names(sim$fireSense_IgnitionFitted$knots), FUN = function(knotVar, ras, knots) {
+        ras[!is.na(ras)] <- rep(knots[[knotVar]], sum(!is.na(ras[])))
+        ras
+      }, ras = rasTemp, knots = sim$fireSense_IgnitionFitted$knots,
+      simplify = FALSE, USE.NAMES = TRUE) %>%
+        raster::stack(.)
+
+      fireSense_IgnitionCovariates <- stack(fireSense_IgnitionCovariates, rasStk)
+      rm(rasStk, rasTemp); gc()
+    } else {
+      for (knot in names(sim$fireSense_IgnitionFitted$knots)) {
+        fireSense_IgnitionCovariates[, eval(knot) := sim$fireSense_IgnitionFitted$knots[knot]]
+      }
     }
+
     kNames <- names(sim$fireSense_IgnitionFitted$knots)
-    allxy <- allxy[!allxy %in% kNames]
+    # allxy <- allxy[!allxy %in% kNames]   ## Ceres: not needed, but more testing may be necessary
   }
 
   list2env(fireSense_IgnitionCovariates, env = mod_env)
@@ -199,21 +218,24 @@ IgnitionPredictRun <- function(sim) {
     sim$fireSense_IgnitionPredicted <- raster::stack(covList) %>%
       raster::predict(model = formula_fire, fun = IgnitionPredictRaster, na.rm = TRUE, sim = sim)
   } else {
-    missing <- !allxy %in% ls(mod_env, all.names = TRUE)
+    ## knots are not supplied by the user. so exclude them from these checks
+    allxyNoK <- allxy[!allxy %in% kNames]
+    missing <- !allxyNoK %in% ls(mod_env, all.names = TRUE)
 
-    if (s <- sum(missing))
+    if (s <- sum(missing)) {
       stop(
-        moduleName, "> '", allxy[missing][1L], "'",
+        moduleName, "> '", allxyNoK[missing][1L], "'",
         if (s > 1) paste0(" (and ", s - 1L, " other", if (s > 2) "s", ")"),
         " not found in data objects."
       )
+    }
 
-    badClass <- unlist(lapply(allxy, function(x) is.vector(mod_env[[x]]) || is(mod_env[[x]], "RasterLayer")))
+    badClass <- unlist(lapply(allxyNoK, function(x) is.vector(mod_env[[x]]) || is(mod_env[[x]], "RasterLayer")))
 
     if (any(badClass)) {
       stop(moduleName, "> Data objects of class 'data.frame' cannot be mixed with objects of other classes.")
     } else {
-      stop(moduleName, "> '", paste(allxy[which(!badClass)], collapse = "', '"),
+      stop(moduleName, "> '", paste(allxyNoK[which(!badClass)], collapse = "', '"),
            "' does not match a data.frame's column, a RasterLayer or a layer from a RasterStack or RasterBrick.")
     }
   }
