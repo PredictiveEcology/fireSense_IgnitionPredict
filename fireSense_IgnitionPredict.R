@@ -13,12 +13,16 @@ defineModule(sim, list(
   citation = list("citation.bib"),
   documentation = list("README.txt", "fireSense_IgnitionPredict.Rmd"),
   reqdPkgs = list("magrittr", "raster"),
-  parameters = rbind(
-    defineParameter("rescaleFactor", "numeric", (250 / 10000)^2,
-                    desc = paste("rescale predicted rates of fire counts at any given temporal and spatial",
-                                 "resolutions by a factor `rescaleFactor = new_res / old_res`.",
-                                 "`rescaleFactor` is the ratio between the data aggregation scale used",
-                                 "for model fitting and the scale at which predictions are to be made")),
+  parameters = bindrows(
+    # defineParameter("rescaleFactor", "numeric", (250 / 10000)^2,
+    #                 desc = paste("rescale predicted rates of fire counts at any given temporal and spatial",
+    #                              "resolutions by a factor `rescaleFactor = new_res / old_res`.",
+    #                              "`rescaleFactor` is the ratio between the data aggregation scale used",
+    #                              "for model fitting and the scale at which predictions are to be made")),
+    defineParameter(name = "outputAsRaster", class = "logical", default = TRUE,
+                    desc = "Should predictions be output as a RasterLayer? If FALSE, fireSense_IgnitionAndEscapeCovariates",
+                    "needs to be in data.table format. If TRUE, it can be both supplied as data.table or RasterStack.",
+                    "If TRUE and class(fireSense_IgnitionAndEscapeCovariates) == 'data.table', then flammableRTM MUST be supplied"),
     defineParameter(name = ".runInitialTime", class = "numeric", default = start(sim),
                     desc = "when to start this module? By default, the start
                             time of the simulation."),
@@ -31,15 +35,28 @@ defineModule(sim, list(
                     desc = "optional. Interval between save events."),
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
-  inputObjects = rbind(
+  inputObjects = bindrows(
+    expectsInput(objectName = "covMinMax",
+                 objectClass = "data.table",
+                 desc = "Table of the original ranges (min and max) of covariates"),
     expectsInput(objectName = "fireSense_IgnitionFitted", objectClass = "fireSense_IgnitionFit",
                  desc = "An object of class fireSense_IgnitionFit created with the fireSense_IgnitionFit module."),
-    expectsInput(objectName = "fireSense_IgnitionAndEscapeCovariates", objectClass = "data.frame",
-                 desc = "An object of class RasterStack or data.frame with prediction variables"),
+    expectsInput(objectName = "fireSense_IgnitionAndEscapeCovariates", objectClass = c("data.frame", "data.table", "RasterStack"),
+                 desc = paste("An object of class RasterStack (named according to variables)",
+                              "or data.frame/data.table with prediction variables. If a data.frame/data.table, then a",
+                              "column named 'pixelID' needs to be supplied when outputAsRaster is TRUE"),
+                 sourceURL = NA_character_),
     expectsInput(objectName = "flammableRTM", objectClass = "RasterLayer",
-                 desc = "a raster with values of 1 for every flammable pixel")
+                 desc = paste("OPTIONAL. A raster with values of 1 for every flammable pixel, required if",
+                              "outputAsRaster is TRUE and class(fireSense_IgnitionAndEscapeCovariates) == 'data.table'")),
+    expectsInput(objectName = "rescaleFactor", objectClass = "numeric",
+                 desc = paste("rescale predicted rates of fire counts at any given temporal and spatial",
+                              "resolutions by a factor `rescaleFactor = new_res / old_res`.",
+                              "`rescaleFactor` is the ratio between the data aggregation scale used",
+                              "for model fitting and the scale at which predictions are to be made",
+                              "If not provided, defaults to (250 / 10000)^2"))
   ),
-  outputObjects = rbind(
+  outputObjects = bindrows(
     createsOutput(objectName = "fireSense_IgnitionProbRaster", objectClass = "RasterLayer",
                   desc = "a raster layer of ignition probabilities")
   )
@@ -71,29 +88,69 @@ doEvent.fireSense_IgnitionPredict = function(sim, eventTime, eventType, debug = 
     warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                   "' in module '", current(sim)[1, "moduleName", with = FALSE], "'", sep = ""))
   )
-  invisible(sim)
+  return(invisible(sim))
 }
 
 IgnitionPredictRun <- function(sim) {
 
- moduleName <- currentModule(sim)
- fireSense_IgnitionCovariates <- copy(sim$fireSense_IgnitionAndEscapeCovariates)
- #TODO: IE wrote this - please review it
- if (!is.null(sim$fireSense_IgnitionFitted$rescales)) {
-   for (name in names(sim$fireSense_IgnitionFitted$rescales)) {
-     op <- eval(parse(text = sim$fireSense_IgnitionFitted$rescales[[name]]),
-                env = fireSense_IgnitionCovariates)
-     fireSense_IgnitionCovariates[, eval(name) := op]
-   }
- }
+  moduleName <- currentModule(sim)
 
- ## Toolbox: set of functions used internally by IgnitionPredictRun
+  if (class(sim$fireSense_IgnitionAndEscapeCovariates) == "RasterStack") {
+    fireSense_IgnitionCovariates <- sim$fireSense_IgnitionAndEscapeCovariates
+  } else {
+    fireSense_IgnitionCovariates <- copy(setDT(sim$fireSense_IgnitionAndEscapeCovariates))
+  }
+
+  #TODO: IE wrote this - please review it
+  ## TODO: Ceres added more - please review AGAIN
+  if (!is.null(sim$fireSense_IgnitionFitted$rescales)) {
+    ## make data frame if raster stack has been applied - easier and less repetitive coding
+    if (class(fireSense_IgnitionCovariates) == "RasterStack") {
+      fireSense_IgnitionCovariatesSc <- raster::as.data.frame(fireSense_IgnitionCovariates)
+      fireSense_IgnitionCovariatesSc <- copy(setDT(fireSense_IgnitionCovariatesSc))
+    } else {
+      fireSense_IgnitionCovariatesSc <- copy(fireSense_IgnitionCovariates)
+    }
+
+    for (cn in names(sim$fireSense_IgnitionFitted$rescales)) {
+      rescaleFun <- sim$fireSense_IgnitionFitted$rescales[[cn]]
+      if (grepl("rescale", rescaleFun)) {
+        set(
+          fireSense_IgnitionCovariatesSc, NULL, cn,
+          rescaleKnown2(x = fireSense_IgnitionCovariatesSc[[cn]],
+                        minNew = 0,
+                        maxNew = 1,
+                        minOrig = min(sim$covMinMax[[cn]]),
+                        maxOrig = max(sim$covMinMax[[cn]]))
+        )
+      } else {
+        op <- eval(parse(text = rescaleFun),
+                   env = fireSense_IgnitionCovariatesSc)
+        fireSense_IgnitionCovariatesSc[, eval(cn) := op]   ## this will fail if raster stack is provided!
+      }
+    }
+
+    if (class(fireSense_IgnitionCovariates) == "RasterStack") {
+      fireSense_IgnitionCovariates <- sapply(names(fireSense_IgnitionCovariates), FUN = function(var, stk, DT) {
+        ras <- stk[[var]]
+        ras[] <- DT[[var]]
+        ras
+      }, stk = fireSense_IgnitionCovariates, DT = fireSense_IgnitionCovariatesSc,
+      simplify = FALSE, USE.NAMES = TRUE)
+      fireSense_IgnitionCovariates <- stack(fireSense_IgnitionCovariates)
+    } else {
+      fireSense_IgnitionCovariates <- fireSense_IgnitionCovariatesSc
+    }
+    rm(fireSense_IgnitionCovariatesSc)
+  }
+
+  ## Toolbox: set of functions used internally by IgnitionPredictRun
   IgnitionPredictRaster <- function(model, data, sim) {
     model %>%
       model.matrix(c(data, sim$knots)) %>%
       `%*%` (sim$fireSense_IgnitionFitted$coef) %>%
       drop %>% sim$fireSense_IgnitionFitted$family$linkinv(.) %>%
-      `*` (P(sim)$rescaleFactor)
+      `*` (sim$rescaleFactor)
   }
 
   ## Handling piecewise terms in a formula
@@ -114,14 +171,38 @@ IgnitionPredictRun <- function(sim) {
   #add knots
   #TODO: I'm not 100% sure this works with a linear model only
   if (!is.null(sim$fireSense_IgnitionFitted$knots)){
-    for (knot in names(sim$fireSense_IgnitionFitted$knots)) {
-      fireSense_IgnitionCovariates[, eval(knot) := sim$fireSense_IgnitionFitted$knots[knot]]
+    if (class(fireSense_IgnitionCovariates) == "RasterStack") {
+      ## make a template mask-type raster with 1s where there are no NAs
+      rasTemp <- sum(!is.na(fireSense_IgnitionCovariates))
+      rasTemp[rasTemp[] == 0] <- NA
+      rasTemp[!is.na(rasTemp)] <- 1
+
+      ## make new raster stack with knot values
+      rasStk <- sapply(names(sim$fireSense_IgnitionFitted$knots), FUN = function(knotVar, ras, knots) {
+        ras[!is.na(ras)] <- rep(knots[[knotVar]], sum(!is.na(ras[])))
+        ras
+      }, ras = rasTemp, knots = sim$fireSense_IgnitionFitted$knots,
+      simplify = FALSE, USE.NAMES = TRUE) %>%
+        raster::stack(.)
+
+      fireSense_IgnitionCovariates <- stack(fireSense_IgnitionCovariates, rasStk)
+      rm(rasStk, rasTemp); gc()
+    } else {
+      for (knot in names(sim$fireSense_IgnitionFitted$knots)) {
+        fireSense_IgnitionCovariates[, eval(knot) := sim$fireSense_IgnitionFitted$knots[knot]]
+      }
     }
+
     kNames <- names(sim$fireSense_IgnitionFitted$knots)
-    allxy <- allxy[!allxy %in% kNames]
+    # allxy <- allxy[!allxy %in% kNames]   ## Ceres: not needed, but more testing may be necessary
   }
 
-  list2env(fireSense_IgnitionCovariates, env = mod_env)
+  if (class(fireSense_IgnitionCovariates) == "RasterStack") {
+    list2env(setNames(unstack(fireSense_IgnitionCovariates), names(fireSense_IgnitionCovariates)),
+             env = mod_env)
+  } else {
+    list2env(fireSense_IgnitionCovariates, env = mod_env)
+  }
 
   if (all(unlist(lapply(allxy, function(x) is.vector(mod_env[[x]]))))) {
 
@@ -130,7 +211,7 @@ IgnitionPredictRun <- function(sim) {
         model.matrix(mod_env) %>%
         `%*%`(sim$fireSense_IgnitionFitted$coef) %>%
         drop %>% sim$fireSense_IgnitionFitted$family$linkinv(.)
-    ) %>% `*`(P(sim)$rescaleFactor)
+    ) %>% `*`(sim$rescaleFactor)
   } else if (all(unlist(lapply(allxy, function(x) is(mod_env[[x]], "RasterLayer"))))) {
     covList <- mget(allxy, envir = mod_env, inherits = FALSE)
     tryCatch({
@@ -142,33 +223,44 @@ IgnitionPredictRun <- function(sim) {
     sim$fireSense_IgnitionPredicted <- raster::stack(covList) %>%
       raster::predict(model = formula_fire, fun = IgnitionPredictRaster, na.rm = TRUE, sim = sim)
   } else {
-    missing <- !allxy %in% ls(mod_env, all.names = TRUE)
+    ## knots are not supplied by the user. so exclude them from these checks
+    allxyNoK <- allxy[!allxy %in% kNames]
+    missing <- !allxyNoK %in% ls(mod_env, all.names = TRUE)
 
-    if (s <- sum(missing))
+    if (s <- sum(missing)) {
       stop(
-        moduleName, "> '", allxy[missing][1L], "'",
+        moduleName, "> '", allxyNoK[missing][1L], "'",
         if (s > 1) paste0(" (and ", s - 1L, " other", if (s > 2) "s", ")"),
         " not found in data objects."
       )
+    }
 
-    badClass <- unlist(lapply(allxy, function(x) is.vector(mod_env[[x]]) || is(mod_env[[x]], "RasterLayer")))
+    badClass <- unlist(lapply(allxyNoK, function(x) is.vector(mod_env[[x]]) || is(mod_env[[x]], "RasterLayer")))
 
     if (any(badClass)) {
       stop(moduleName, "> Data objects of class 'data.frame' cannot be mixed with objects of other classes.")
     } else {
-      stop(moduleName, "> '", paste(allxy[which(!badClass)], collapse = "', '"),
+      stop(moduleName, "> '", paste(allxyNoK[which(!badClass)], collapse = "', '"),
            "' does not match a data.frame's column, a RasterLayer or a layer from a RasterStack or RasterBrick.")
     }
   }
 
-  #force ignitionPredicted a raster
-  if (!class(sim$fireSense_IgnitionPredicted) == "RasterLayer"){
+  ## output as raster if desired
+  ## TODO: add more assertions - do pixelIDs correspond to raster cells? are there NAs to be accounted for
+  ## compareRaster(flammableRTM, ...)
+  if (P(sim)$outputAsRaster &
+      class(sim$fireSense_IgnitionPredicted) != "RasterLayer") {
+    ## checks
+    if (!"pixelID" %in% names(fireSense_IgnitionCovariates)) {
+      stop("fireSense_IgnitionAndEscapeCovariates must have a 'pixelID' column")
+    }
+
     IgnitionRas <- raster(sim$flammableRTM)
     IgnitionRas[fireSense_IgnitionCovariates$pixelID] <- sim$fireSense_IgnitionPredicted
     sim$fireSense_IgnitionPredicted <- IgnitionRas
   }
 
-  invisible(sim)
+  return(invisible(sim))
 }
 
 IgnitionPredictSave <- function(sim) {
@@ -181,5 +273,17 @@ IgnitionPredictSave <- function(sim) {
     filename = file.path(paths(sim)$out, paste0("fireSense_IgnitionPredicted_", timeUnit, currentTime, ".tif"))
   )
 
-  invisible(sim)
+  return(invisible(sim))
+}
+
+.inputObjects <- function(sim) {
+  # cacheTags <- c(currentModule(sim), "function:.inputObjects")
+  # dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
+  # message(currentModule(sim), ": using dataPath '", dPath, "'.")
+
+  if (!suppliedElsewhere("rescaleFactor", sim)) {
+    sim$rescaleFactor <- (250 / 10000)^2
+  }
+
+  return(invisible(sim))
 }
