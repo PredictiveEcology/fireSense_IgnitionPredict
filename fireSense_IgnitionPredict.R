@@ -197,7 +197,12 @@ IgnitionPredictRun <- function(sim) {
     # allxy <- allxy[!allxy %in% kNames]   ## Ceres: not needed, but more testing may be necessary
   }
 
-  list2env(fireSense_IgnitionCovariates, env = mod_env)
+  if (class(fireSense_IgnitionCovariates) == "RasterStack") {
+    list2env(setNames(unstack(fireSense_IgnitionCovariates), names(fireSense_IgnitionCovariates)),
+             env = mod_env)
+  } else {
+    list2env(fireSense_IgnitionCovariates, env = mod_env)
+  }
 
   if (all(unlist(lapply(allxy, function(x) is.vector(mod_env[[x]]))))) {
 
