@@ -19,6 +19,10 @@ defineModule(sim, list(
     #                              "resolutions by a factor `rescaleFactor = new_res / old_res`.",
     #                              "`rescaleFactor` is the ratio between the data aggregation scale used",
     #                              "for model fitting and the scale at which predictions are to be made")),
+    defineParameter(name = "outputAsRaster", class = "logical", default = TRUE,
+                    desc = "Should predictions be output as a RasterLayer? If FALSE, fireSense_IgnitionAndEscapeCovariates",
+                    "needs to be in data.table format. If TRUE, it can be both supplied as data.table or RasterStack.",
+                    "If TRUE and class(fireSense_IgnitionAndEscapeCovariates) == 'data.table', then flammableRTM MUST be supplied"),
     defineParameter(name = ".runInitialTime", class = "numeric", default = start(sim),
                     desc = "when to start this module? By default, the start
                             time of the simulation."),
@@ -37,10 +41,14 @@ defineModule(sim, list(
                  desc = "Table of the original ranges (min and max) of covariates"),
     expectsInput(objectName = "fireSense_IgnitionFitted", objectClass = "fireSense_IgnitionFit",
                  desc = "An object of class fireSense_IgnitionFit created with the fireSense_IgnitionFit module."),
-    expectsInput(objectName = "fireSense_IgnitionAndEscapeCovariates", objectClass = "data.frame",
-                 desc = "An object of class RasterStack or data.frame with prediction variables"),
+    expectsInput(objectName = "fireSense_IgnitionAndEscapeCovariates", objectClass = c("data.frame", "data.table", "RasterStack"),
+                 desc = paste("An object of class RasterStack (named according to variables)",
+                              "or data.frame/data.table with prediction variables. If a data.frame/data.table, then a",
+                              "column named 'pixelID' needs to be supplied when outputAsRaster is TRUE"),
+                 sourceURL = NA_character_),
     expectsInput(objectName = "flammableRTM", objectClass = "RasterLayer",
-                 desc = "a raster with values of 1 for every flammable pixel"),
+                 desc = paste("OPTIONAL. A raster with values of 1 for every flammable pixel, required if",
+                              "outputAsRaster is TRUE and class(fireSense_IgnitionAndEscapeCovariates) == 'data.table'")),
     expectsInput(objectName = "rescaleFactor", objectClass = "numeric",
                  desc = paste("rescale predicted rates of fire counts at any given temporal and spatial",
                               "resolutions by a factor `rescaleFactor = new_res / old_res`.",
@@ -210,8 +218,16 @@ IgnitionPredictRun <- function(sim) {
     }
   }
 
-  #force ignitionPredicted a raster
-  if (!class(sim$fireSense_IgnitionPredicted) == "RasterLayer"){
+  ## output as raster if desired
+  ## TODO: add more assertions - do pixelIDs correspond to raster cells? are there NAs to be accounted for
+  ## compareRaster(flammableRTM, ...)
+  if (P(sim)$outputAsRaster &
+      class(sim$fireSense_IgnitionPredicted) != "RasterLayer") {
+    ## checks
+    if (!"pixelID" %in% names(fireSense_IgnitionCovariates)) {
+      stop("fireSense_IgnitionAndEscapeCovariates must have a 'pixelID' column")
+    }
+
     IgnitionRas <- raster(sim$flammableRTM)
     IgnitionRas[fireSense_IgnitionCovariates$pixelID] <- sim$fireSense_IgnitionPredicted
     sim$fireSense_IgnitionPredicted <- IgnitionRas
