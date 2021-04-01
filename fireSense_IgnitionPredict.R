@@ -32,6 +32,9 @@ defineModule(sim, list(
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
   inputObjects = bindrows(
+    expectsInput(objectName = "covMinMax",
+                 objectClass = "data.table",
+                 desc = "Table of the original ranges (min and max) of covariates"),
     expectsInput(objectName = "fireSense_IgnitionFitted", objectClass = "fireSense_IgnitionFit",
                  desc = "An object of class fireSense_IgnitionFit created with the fireSense_IgnitionFit module."),
     expectsInput(objectName = "fireSense_IgnitionAndEscapeCovariates", objectClass = "data.frame",
@@ -84,14 +87,53 @@ IgnitionPredictRun <- function(sim) {
 
   moduleName <- currentModule(sim)
 
-  fireSense_IgnitionCovariates <- copy(sim$fireSense_IgnitionAndEscapeCovariates)
+  if (class(sim$fireSense_IgnitionAndEscapeCovariates) == "RasterStack") {
+    fireSense_IgnitionCovariates <- sim$fireSense_IgnitionAndEscapeCovariates
+  } else {
+    fireSense_IgnitionCovariates <- copy(setDT(sim$fireSense_IgnitionAndEscapeCovariates))
+  }
+
   #TODO: IE wrote this - please review it
+  ## TODO: Ceres added more - please review AGAIN
   if (!is.null(sim$fireSense_IgnitionFitted$rescales)) {
-    for (name in names(sim$fireSense_IgnitionFitted$rescales)) {
-      op <- eval(parse(text = sim$fireSense_IgnitionFitted$rescales[[name]]),
-                 env = fireSense_IgnitionCovariates)
-      fireSense_IgnitionCovariates[, eval(name) := op]
+    ## make data frame if raster stack has been applied - easier and less repetitive coding
+    if (class(fireSense_IgnitionCovariates) == "RasterStack") {
+      fireSense_IgnitionCovariatesSc <- raster::as.data.frame(fireSense_IgnitionCovariates)
+      fireSense_IgnitionCovariatesSc <- copy(setDT(fireSense_IgnitionCovariatesSc))
+    } else {
+      fireSense_IgnitionCovariatesSc <- copy(fireSense_IgnitionCovariates)
     }
+
+    for (cn in names(sim$fireSense_IgnitionFitted$rescales)) {
+      rescaleFun <- sim$fireSense_IgnitionFitted$rescales[[cn]]
+      if (grepl("rescale", rescaleFun)) {
+        set(
+          fireSense_IgnitionCovariatesSc, NULL, cn,
+          rescaleKnown2(x = fireSense_IgnitionCovariatesSc[[cn]],
+                        minNew = 0,
+                        maxNew = 1,
+                        minOrig = min(sim$covMinMax[[cn]]),
+                        maxOrig = max(sim$covMinMax[[cn]]))
+        )
+      } else {
+        op <- eval(parse(text = rescaleFun),
+                   env = fireSense_IgnitionCovariatesSc)
+        fireSense_IgnitionCovariatesSc[, eval(cn) := op]   ## this will fail if raster stack is provided!
+      }
+    }
+
+    if (class(fireSense_IgnitionCovariates) == "RasterStack") {
+      fireSense_IgnitionCovariates <- sapply(names(fireSense_IgnitionCovariates), FUN = function(var, stk, DT) {
+        ras <- stk[[var]]
+        ras[] <- DT[[var]]
+        ras
+      }, stk = fireSense_IgnitionCovariates, DT = fireSense_IgnitionCovariatesSc,
+      simplify = FALSE, USE.NAMES = TRUE)
+      fireSense_IgnitionCovariates <- stack(fireSense_IgnitionCovariates)
+    } else {
+      fireSense_IgnitionCovariates <- fireSense_IgnitionCovariatesSc
+    }
+    rm(fireSense_IgnitionCovariatesSc)
   }
 
   ## Toolbox: set of functions used internally by IgnitionPredictRun
