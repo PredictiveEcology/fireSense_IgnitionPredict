@@ -32,7 +32,7 @@ defineModule(sim, list(
     defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
   ),
   inputObjects = bindrows(
-    expectsInput(objectName = "covMinMax",
+    expectsInput(objectName = "covMinMax_ignition",
                  objectClass = "data.table",
                  desc = "Table of the original ranges (min and max) of covariates"),
     expectsInput(objectName = "fireSense_IgnitionFitted", objectClass = "fireSense_IgnitionFit",
@@ -125,8 +125,8 @@ IgnitionPredictRun <- function(sim) {
           rescaleKnown2(x = fireSense_IgnitionCovariatesSc[[cn]],
                         minNew = 0,
                         maxNew = 1,
-                        minOrig = min(sim$covMinMax[[cn]]),
-                        maxOrig = max(sim$covMinMax[[cn]]))
+                        minOrig = min(sim$covMinMax_ignition[[cn]]),
+                        maxOrig = max(sim$covMinMax_ignition[[cn]]))
         )
       } else {
         op <- eval(parse(text = rescaleFun),
