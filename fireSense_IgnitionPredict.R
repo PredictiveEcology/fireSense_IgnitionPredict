@@ -19,10 +19,6 @@ defineModule(sim, list(
     #                              "resolutions by a factor `rescaleFactor = new_res / old_res`.",
     #                              "`rescaleFactor` is the ratio between the data aggregation scale used",
     #                              "for model fitting and the scale at which predictions are to be made")),
-    defineParameter(name = "outputAsRaster", class = "logical", default = TRUE,
-                    desc = "Should predictions be output as a RasterLayer? If FALSE, fireSense_IgnitionAndEscapeCovariates",
-                    "needs to be in data.table format. If TRUE, it can be both supplied as data.table or RasterStack.",
-                    "If TRUE and class(fireSense_IgnitionAndEscapeCovariates) == 'data.table', then flammableRTM MUST be supplied"),
     defineParameter(name = ".runInitialTime", class = "numeric", default = start(sim),
                     desc = "when to start this module? By default, the start
                             time of the simulation."),
@@ -48,7 +44,7 @@ defineModule(sim, list(
                  sourceURL = NA_character_),
     expectsInput(objectName = "flammableRTM", objectClass = "RasterLayer",
                  desc = paste("OPTIONAL. A raster with values of 1 for every flammable pixel, required if",
-                              "outputAsRaster is TRUE and class(fireSense_IgnitionAndEscapeCovariates) == 'data.table'")),
+                              "class(fireSense_IgnitionAndEscapeCovariates) == 'data.table'")),
     expectsInput(objectName = "rescaleFactor", objectClass = "numeric",
                  desc = paste("rescale predicted rates of fire counts at any given temporal and spatial",
                               "resolutions by a factor `rescaleFactor = new_res / old_res`.",
@@ -57,8 +53,12 @@ defineModule(sim, list(
                               "If not provided, defaults to (250 / 10000)^2"))
   ),
   outputObjects = bindrows(
-    createsOutput(objectName = "fireSense_IgnitionProbRaster", objectClass = "RasterLayer",
-                  desc = "a raster layer of ignition probabilities")
+    createsOutput(objectName = "fireSense_IgnitionPredicted", objectClass = "RasterLayer",
+                  desc = "a raster layer of ignition probabilities"),
+    createsOutput(objectName = "fireSense_IgnitionPredictedVec", objectClass = "numeric",
+                  desc = paste("a named numeric vector ignition probabilities, with names",
+                               "corresponding to non-NA pixels in 'fireSense_IgnitionPredicted'",
+                               "and 'flammableRTM'"))
   )
 ))
 
@@ -99,6 +99,11 @@ IgnitionPredictRun <- function(sim) {
     fireSense_IgnitionCovariates <- sim$fireSense_IgnitionAndEscapeCovariates
   } else {
     fireSense_IgnitionCovariates <- copy(setDT(sim$fireSense_IgnitionAndEscapeCovariates))
+
+    ## check
+    if (is.null(sim$flammableRTM)) {
+      stop("'fireSense_IgnitionAndEscapeCovariates' is a table. Please supply 'flammableRTM'")
+    }
   }
 
   #TODO: IE wrote this - please review it
@@ -245,19 +250,24 @@ IgnitionPredictRun <- function(sim) {
     }
   }
 
-  ## output as raster if desired
+  ## output raster AND table
   ## TODO: add more assertions - do pixelIDs correspond to raster cells? are there NAs to be accounted for
   ## compareRaster(flammableRTM, ...)
-  if (P(sim)$outputAsRaster &
-      class(sim$fireSense_IgnitionPredicted) != "RasterLayer") {
+  if (class(sim$fireSense_IgnitionPredicted) != "RasterLayer") {
+    sim$fireSense_IgnitionPredictedVec <- sim$fireSense_IgnitionPredicted
     ## checks
     if (!"pixelID" %in% names(fireSense_IgnitionCovariates)) {
       stop("fireSense_IgnitionAndEscapeCovariates must have a 'pixelID' column")
     }
 
     IgnitionRas <- raster(sim$flammableRTM)
-    IgnitionRas[fireSense_IgnitionCovariates$pixelID] <- sim$fireSense_IgnitionPredicted
+    IgnitionRas[fireSense_IgnitionCovariates$pixelID] <- sim$fireSense_IgnitionPredictedVec
+    ## "re-write" object as a raster
     sim$fireSense_IgnitionPredicted <- IgnitionRas
+  } else {
+    fireSense_IgnitionPredictedVec <- raster::as.data.frame(sim$fireSense_IgnitionPredicted, na.rm = TRUE)
+    sim$fireSense_IgnitionPredictedVec <- fireSense_IgnitionPredictedVec[["layer"]]
+    names(sim$fireSense_IgnitionPredictedVec) <- rownames(fireSense_IgnitionPredictedVec)
   }
 
   return(invisible(sim))
