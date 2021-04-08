@@ -92,8 +92,8 @@ doEvent.fireSense_IgnitionPredict = function(sim, eventTime, eventType, debug = 
 }
 
 IgnitionPredictRun <- function(sim) {
-
   moduleName <- currentModule(sim)
+
 
   if (class(sim$fireSense_IgnitionAndEscapeCovariates) == "RasterStack") {
     fireSense_IgnitionCovariates <- sim$fireSense_IgnitionAndEscapeCovariates
@@ -175,7 +175,7 @@ IgnitionPredictRun <- function(sim) {
 
   #add knots
   #TODO: I'm not 100% sure this works with a linear model only
-  if (!is.null(sim$fireSense_IgnitionFitted$knots)){
+  if (!is.null(sim$fireSense_IgnitionFitted$knots)) {
     if (class(fireSense_IgnitionCovariates) == "RasterStack") {
       ## make a template mask-type raster with 1s where there are no NAs
       rasTemp <- sum(!is.na(fireSense_IgnitionCovariates))
