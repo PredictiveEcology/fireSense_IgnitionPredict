@@ -110,7 +110,7 @@ IgnitionPredictRun <- function(sim) {
   ## TODO: Ceres added more - please review AGAIN
   if (!is.null(sim$fireSense_IgnitionFitted$rescales)) {
     ## make data frame if raster stack has been applied - easier and less repetitive coding
-    if (class(fireSense_IgnitionCovariates) == "RasterStack") {
+    if (all(class(fireSense_IgnitionCovariates) == "RasterStack")) {
       fireSense_IgnitionCovariatesSc <- raster::as.data.frame(fireSense_IgnitionCovariates)
       fireSense_IgnitionCovariatesSc <- copy(setDT(fireSense_IgnitionCovariatesSc))
     } else {
@@ -135,7 +135,7 @@ IgnitionPredictRun <- function(sim) {
       }
     }
 
-    if (class(fireSense_IgnitionCovariates) == "RasterStack") {
+    if (all(class(fireSense_IgnitionCovariates) == "RasterStack")) {
       fireSense_IgnitionCovariates <- sapply(names(fireSense_IgnitionCovariates), FUN = function(var, stk, DT) {
         ras <- stk[[var]]
         ras[] <- DT[[var]]
