@@ -14,11 +14,6 @@ defineModule(sim, list(
   documentation = list("README.txt", "fireSense_IgnitionPredict.Rmd"),
   reqdPkgs = list("magrittr", "raster"),
   parameters = bindrows(
-    # defineParameter("rescaleFactor", "numeric", (250 / 10000)^2,
-    #                 desc = paste("rescale predicted rates of fire counts at any given temporal and spatial",
-    #                              "resolutions by a factor `rescaleFactor = new_res / old_res`.",
-    #                              "`rescaleFactor` is the ratio between the data aggregation scale used",
-    #                              "for model fitting and the scale at which predictions are to be made")),
     defineParameter(name = ".runInitialTime", class = "numeric", default = start(sim),
                     desc = "when to start this module? By default, the start
                             time of the simulation."),
