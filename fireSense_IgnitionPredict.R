@@ -40,6 +40,10 @@ defineModule(sim, list(
     expectsInput(objectName = "flammableRTM", objectClass = "RasterLayer",
                  desc = paste("OPTIONAL. A raster with values of 1 for every flammable pixel, required if",
                               "class(fireSense_IgnitionAndEscapeCovariates) == 'data.table'")),
+    expectsInput(objectName = "lambdaRescaleFactor", objectClass = "numeric",
+                  desc = paste("OPTIONAL. Factor used to adjust predicted ignition probabilities when pseudo-absences",
+                               "are sampled as a proportion of presences (otherwise set to 1).",
+                               "Calculated as (new_totalNoCells / orig_totalNoCells)")),
     expectsInput(objectName = "rescaleFactor", objectClass = "numeric",
                  desc = paste("rescale predicted rates of fire counts at any given temporal and spatial",
                               "resolutions by a factor `rescaleFactor = new_res / old_res`.",
@@ -88,7 +92,6 @@ doEvent.fireSense_IgnitionPredict = function(sim, eventTime, eventType, debug = 
 
 IgnitionPredictRun <- function(sim) {
   moduleName <- currentModule(sim)
-
 
   if (class(sim$fireSense_IgnitionAndEscapeCovariates) == "RasterStack") {
     fireSense_IgnitionCovariates <- sim$fireSense_IgnitionAndEscapeCovariates
@@ -150,7 +153,8 @@ IgnitionPredictRun <- function(sim) {
       model.matrix(c(data, sim$knots)) %>%
       `%*%` (sim$fireSense_IgnitionFitted$coef) %>%
       drop %>% sim$fireSense_IgnitionFitted$family$linkinv(.) %>%
-      `*` (sim$rescaleFactor)
+      `*` (sim$rescaleFactor) %>%
+      `*` (sim$lambdaRescaleFactor)
   }
 
   ## Handling piecewise terms in a formula
@@ -211,7 +215,8 @@ IgnitionPredictRun <- function(sim) {
         model.matrix(mod_env) %>%
         `%*%`(sim$fireSense_IgnitionFitted$coef) %>%
         drop %>% sim$fireSense_IgnitionFitted$family$linkinv(.)
-    ) %>% `*`(sim$rescaleFactor)
+    ) %>% `*`(sim$rescaleFactor) %>%
+      `*` (sim$lambdaRescaleFactor)
   } else if (all(unlist(lapply(allxy, function(x) is(mod_env[[x]], "RasterLayer"))))) {
     covList <- mget(allxy, envir = mod_env, inherits = FALSE)
     tryCatch({
@@ -288,6 +293,10 @@ IgnitionPredictSave <- function(sim) {
 
   if (!suppliedElsewhere("rescaleFactor", sim)) {
     sim$rescaleFactor <- (250 / 10000)^2
+  }
+
+  if (!suppliedElsewhere("lambdaRescaleFactor", sim)) {
+    sim$lambdaRescaleFactor <- 1
   }
 
   return(invisible(sim))
