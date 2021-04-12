@@ -93,7 +93,7 @@ doEvent.fireSense_IgnitionPredict = function(sim, eventTime, eventType, debug = 
 IgnitionPredictRun <- function(sim) {
   moduleName <- currentModule(sim)
 
-  if (class(sim$fireSense_IgnitionAndEscapeCovariates) == "RasterStack") {
+  if (any(class(sim$fireSense_IgnitionAndEscapeCovariates) == "RasterStack")) {
     fireSense_IgnitionCovariates <- sim$fireSense_IgnitionAndEscapeCovariates
   } else {
     fireSense_IgnitionCovariates <- copy(setDT(sim$fireSense_IgnitionAndEscapeCovariates))
@@ -107,8 +107,9 @@ IgnitionPredictRun <- function(sim) {
   #TODO: IE wrote this - please review it
   ## TODO: Ceres added more - please review AGAIN
   if (!is.null(sim$fireSense_IgnitionFitted$rescales)) {
+
     ## make data frame if raster stack has been applied - easier and less repetitive coding
-    if (all(class(fireSense_IgnitionCovariates) == "RasterStack")) {
+    if (any(class(fireSense_IgnitionCovariates) == "RasterStack")) {
       fireSense_IgnitionCovariatesSc <- raster::as.data.frame(fireSense_IgnitionCovariates)
       fireSense_IgnitionCovariatesSc <- copy(setDT(fireSense_IgnitionCovariatesSc))
     } else {
@@ -133,7 +134,7 @@ IgnitionPredictRun <- function(sim) {
       }
     }
 
-    if (all(class(fireSense_IgnitionCovariates) == "RasterStack")) {
+    if (any(class(fireSense_IgnitionCovariates) == "RasterStack")) {
       fireSense_IgnitionCovariates <- sapply(names(fireSense_IgnitionCovariates), FUN = function(var, stk, DT) {
         ras <- stk[[var]]
         ras[] <- DT[[var]]
@@ -175,7 +176,7 @@ IgnitionPredictRun <- function(sim) {
   #add knots
   #TODO: I'm not 100% sure this works with a linear model only
   if (!is.null(sim$fireSense_IgnitionFitted$knots)) {
-    if (class(fireSense_IgnitionCovariates) == "RasterStack") {
+    if (any(class(fireSense_IgnitionCovariates) == "RasterStack")) {
       ## make a template mask-type raster with 1s where there are no NAs
       rasTemp <- sum(!is.na(fireSense_IgnitionCovariates))
       rasTemp[rasTemp[] == 0] <- NA
@@ -201,7 +202,7 @@ IgnitionPredictRun <- function(sim) {
     # allxy <- allxy[!allxy %in% kNames]   ## Ceres: not needed, but more testing may be necessary
   }
 
-  if (class(fireSense_IgnitionCovariates) == "RasterStack") {
+  if (any(class(fireSense_IgnitionCovariates) == "RasterStack")) {
     list2env(setNames(unstack(fireSense_IgnitionCovariates), names(fireSense_IgnitionCovariates)),
              env = mod_env)
   } else {
