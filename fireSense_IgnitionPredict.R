@@ -99,7 +99,7 @@ IgnitionPredictRun <- function(sim) {
   if (isRasterStack) {
     fireSense_IgnitionCovariates <- as.data.table(sim$fireSense_IgnitionAndEscapeCovariates[[covsUsed]][])
     rasterTemplate <- raster(sim$fireSense_IgnitionAndEscapeCovariates[[1]])
-    nonNaPixels <- rowSums(is.na(fireSense_IgnitionCovariates)) != NCOL(fireSense_IgnitionCovariates)
+    nonNaPixels <- which(rowSums(is.na(fireSense_IgnitionCovariates)) != NCOL(fireSense_IgnitionCovariates))
     fireSense_IgnitionCovariates <- fireSense_IgnitionCovariates[nonNaPixels]
   } else {
     fireSense_IgnitionCovariates <-
@@ -123,14 +123,19 @@ IgnitionPredictRun <- function(sim) {
   if (!is.null(sim$fireSense_IgnitionFitted$rescales)) {
     rescaledLayers <- names(sim$fireSense_IgnitionFitted$rescales)
 
-    # rescale the relevant values
+    # # rescale the relevant values
     rescaledVals <-
       Map(r = fireSense_IgnitionCovariates[ , ..rescaledLayers],
           cmm = sim$covMinMax_ignition[, ..rescaledLayers],
-          function(r, cmm) {
-            rescaleKnown2(r[], 0, 1, min(cmm), max(cmm))
+          rescaler = sim$fireSense_IgnitionFitted$rescales[rescaledLayers],
+          function(r, cmm, rescaler) {
+            if (grepl("rescale", rescaler)) {
+              rescaleKnown2(r[], 0, 1, min(cmm), max(cmm))
+            }else {
+              eval(parse(text = rescaleFun), env = fireSense_IgnitionCovariates)
+            }
           })
-    # update original object
+    # # update original object
     fireSense_IgnitionCovariates[, eval(rescaledLayers):= rescaledVals]
   }
 
@@ -146,7 +151,7 @@ IgnitionPredictRun <- function(sim) {
   # Create outputs
   sim$fireSense_IgnitionPredicted <- raster(rasterTemplate)
   fireSense_IgnitionPredictedVec <- mu
-  names(fireSense_IgnitionPredictedVec) <- as.character(which(nonNaPixels))
+  names(fireSense_IgnitionPredictedVec) <- as.character(nonNaPixels)
   sim$fireSense_IgnitionPredicted[nonNaPixels] <- mu
   return(invisible(sim))
 }
