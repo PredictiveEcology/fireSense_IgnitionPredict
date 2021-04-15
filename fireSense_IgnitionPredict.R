@@ -91,7 +91,6 @@ doEvent.fireSense_IgnitionPredict = function(sim, eventTime, eventType, debug = 
 }
 
 IgnitionPredictRun <- function(sim) {
-  moduleName <- currentModule(sim)
   isRasterStack <- is(sim$fireSense_IgnitionAndEscapeCovariates,  "RasterStack")
   covsUsed <- rownames(attr(terms(sim$fireSense_IgnitionFitted$formula[-2]), "factors"))
   covsUsed <- grep("pw", covsUsed, invert = TRUE, value = TRUE)
@@ -157,7 +156,6 @@ IgnitionPredictRun <- function(sim) {
 }
 
 IgnitionPredictSave <- function(sim) {
-  moduleName <- current(sim)$moduleName
   timeUnit <- timeunit(sim)
   currentTime <- time(sim, timeUnit)
 
