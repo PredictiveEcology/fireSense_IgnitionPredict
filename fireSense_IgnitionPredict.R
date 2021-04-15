@@ -61,7 +61,7 @@ defineModule(sim, list(
   )
 ))
 
-doEvent.fireSense_IgnitionPredict = function(sim, eventTime, eventType, debug = FALSE)
+doEvent.fireSense_IgnitionPredict = function(sim, eventTime, eventType, debug = FALSE) {
   moduleName <- currentModule(sim)
 
   switch(
@@ -106,6 +106,7 @@ IgnitionPredictRun <- function(sim) {
       } else {
         sim$fireSense_IgnitionAndEscapeCovariates
       }
+
     fireSense_IgnitionCovariates <- fireSense_IgnitionCovariates[, ..covsUsed]
     ## checks
     if (is.null(sim$flammableRTM)) {
@@ -129,28 +130,29 @@ IgnitionPredictRun <- function(sim) {
           function(r, cmm, rescaler) {
             if (grepl("rescale", rescaler)) {
               rescaleKnown2(r[], 0, 1, min(cmm), max(cmm))
-            }else {
+            } else {
               eval(parse(text = rescaleFun), env = fireSense_IgnitionCovariates)
             }
           })
     # # update original object
-    fireSense_IgnitionCovariates[, eval(rescaledLayers):= rescaledVals]
+    fireSense_IgnitionCovariates[, eval(rescaledLayers) := rescaledVals]
   }
 
   knots <- as.list(sim$fireSense_IgnitionFitted$knots)
   dataForPredict <- data.frame(fireSense_IgnitionCovariates[], knots)
   dataForPredict <- na.omit(dataForPredict[])
   mu <- predictIgnition(sim$fireSense_IgnitionFitted[["formula"]][-2],
-                     dataForPredict,
-                     sim$fireSense_IgnitionFitted$coef,
-                     sim$rescaleFactor,
-                     sim$lambdaRescaleFactor,
-                     sim$fireSense_IgnitionFitted$family$linkinv)
+                        dataForPredict,
+                        sim$fireSense_IgnitionFitted$coef,
+                        sim$rescaleFactor,
+                        sim$lambdaRescaleFactor,
+                        sim$fireSense_IgnitionFitted$family$linkinv)
   # Create outputs
   sim$fireSense_IgnitionPredicted <- raster(rasterTemplate)
   fireSense_IgnitionPredictedVec <- mu
   names(fireSense_IgnitionPredictedVec) <- as.character(nonNaPixels)
   sim$fireSense_IgnitionPredicted[nonNaPixels] <- mu
+
   return(invisible(sim))
 }
 
