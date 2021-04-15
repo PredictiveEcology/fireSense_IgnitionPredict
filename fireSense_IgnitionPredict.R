@@ -102,7 +102,13 @@ IgnitionPredictRun <- function(sim) {
     nonNaPixels <- rowSums(is.na(fireSense_IgnitionCovariates)) != NCOL(fireSense_IgnitionCovariates)
     fireSense_IgnitionCovariates <- fireSense_IgnitionCovariates[nonNaPixels]
   } else {
-    fireSense_IgnitionCovariates <- sim$fireSense_IgnitionAndEscapeCovariates[, ..covsUsed]
+    fireSense_IgnitionCovariates <-
+      if (!is(sim$fireSense_IgnitionAndEscapeCovariates, "data.table")) {
+        as.data.table(sim$fireSense_IgnitionAndEscapeCovariates)
+      } else {
+        sim$fireSense_IgnitionAndEscapeCovariates
+      }
+    fireSense_IgnitionCovariates <- fireSense_IgnitionCovariates[, ..covsUsed]
     ## checks
     if (is.null(sim$flammableRTM)) {
       stop("'fireSense_IgnitionAndEscapeCovariates' is a table. Please supply 'flammableRTM'")
