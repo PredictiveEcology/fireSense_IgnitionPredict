@@ -61,9 +61,8 @@ defineModule(sim, list(
   )
 ))
 
-doEvent.fireSense_IgnitionPredict = function(sim, eventTime, eventType, debug = FALSE)
-{
-  moduleName <- current(sim)$moduleName
+doEvent.fireSense_IgnitionPredict = function(sim, eventTime, eventType, debug = FALSE) {
+  moduleName <- currentModule(sim)
 
   switch(
     eventType,
@@ -91,7 +90,6 @@ doEvent.fireSense_IgnitionPredict = function(sim, eventTime, eventType, debug = 
 }
 
 IgnitionPredictRun <- function(sim) {
-  moduleName <- currentModule(sim)
   isRasterStack <- is(sim$fireSense_IgnitionAndEscapeCovariates,  "RasterStack")
   covsUsed <- rownames(attr(terms(sim$fireSense_IgnitionFitted$formula[-2]), "factors"))
   covsUsed <- grep("pw", covsUsed, invert = TRUE, value = TRUE)
@@ -108,6 +106,7 @@ IgnitionPredictRun <- function(sim) {
       } else {
         sim$fireSense_IgnitionAndEscapeCovariates
       }
+
     fireSense_IgnitionCovariates <- fireSense_IgnitionCovariates[, ..covsUsed]
     ## checks
     if (is.null(sim$flammableRTM)) {
@@ -131,33 +130,33 @@ IgnitionPredictRun <- function(sim) {
           function(r, cmm, rescaler) {
             if (grepl("rescale", rescaler)) {
               rescaleKnown2(r[], 0, 1, min(cmm), max(cmm))
-            }else {
+            } else {
               eval(parse(text = rescaleFun), env = fireSense_IgnitionCovariates)
             }
           })
     # # update original object
-    fireSense_IgnitionCovariates[, eval(rescaledLayers):= rescaledVals]
+    fireSense_IgnitionCovariates[, eval(rescaledLayers) := rescaledVals]
   }
 
   knots <- as.list(sim$fireSense_IgnitionFitted$knots)
   dataForPredict <- data.frame(fireSense_IgnitionCovariates[], knots)
   dataForPredict <- na.omit(dataForPredict[])
   mu <- predictIgnition(sim$fireSense_IgnitionFitted[["formula"]][-2],
-                     dataForPredict,
-                     sim$fireSense_IgnitionFitted$coef,
-                     sim$rescaleFactor,
-                     sim$lambdaRescaleFactor,
-                     sim$fireSense_IgnitionFitted$family$linkinv)
+                        dataForPredict,
+                        sim$fireSense_IgnitionFitted$coef,
+                        sim$rescaleFactor,
+                        sim$lambdaRescaleFactor,
+                        sim$fireSense_IgnitionFitted$family$linkinv)
   # Create outputs
   sim$fireSense_IgnitionPredicted <- raster(rasterTemplate)
   sim$fireSense_IgnitionPredictedVec <- mu
   names(sim$fireSense_IgnitionPredictedVec) <- as.character(nonNaPixels)
   sim$fireSense_IgnitionPredicted[nonNaPixels] <- mu
+
   return(invisible(sim))
 }
 
 IgnitionPredictSave <- function(sim) {
-  moduleName <- current(sim)$moduleName
   timeUnit <- timeunit(sim)
   currentTime <- time(sim, timeUnit)
 
