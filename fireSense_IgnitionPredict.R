@@ -62,8 +62,7 @@ defineModule(sim, list(
 ))
 
 doEvent.fireSense_IgnitionPredict = function(sim, eventTime, eventType, debug = FALSE)
-{
-  moduleName <- current(sim)$moduleName
+  moduleName <- currentModule(sim)
 
   switch(
     eventType,
