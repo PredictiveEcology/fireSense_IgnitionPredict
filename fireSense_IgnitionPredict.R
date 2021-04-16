@@ -110,6 +110,7 @@ IgnitionPredictRun <- function(sim) {
   }
 
   rescaleFactor <- (raster::res(rasterTemplate)/fireSense_IgnitionFitted$fittingRes)^2
+
   if (!is.null(sim$fireSense_IgnitionFitted$rescales)) {
     rescaledLayers <- names(sim$fireSense_IgnitionFitted$rescales)
 
@@ -167,6 +168,7 @@ IgnitionPredictSave <- function(sim) {
   return(invisible(sim))
 }
 
+## TODO: move to fireSenseUtils
 predictIgnition <- function(model, data, coefs, rescaleFactor, lambdaRescaleFactor, linkinv) {
   mm <- model.matrix(model, data) #%>%
   pred <- mm %*% coefs
