@@ -39,17 +39,7 @@ defineModule(sim, list(
                  sourceURL = NA_character_),
     expectsInput(objectName = "flammableRTM", objectClass = "RasterLayer",
                  desc = paste("OPTIONAL. A raster with values of 1 for every flammable pixel, required if",
-                              "class(fireSense_IgnitionAndEscapeCovariates) == 'data.table'")),
-    expectsInput(objectName = "lambdaRescaleFactor", objectClass = "numeric",
-                 desc = paste("OPTIONAL. Factor used to adjust predicted ignition probabilities when pseudo-absences",
-                              "are sampled as a proportion of presences (otherwise set to 1).",
-                              "Calculated as (new_totalNoCells / orig_totalNoCells)")),
-    expectsInput(objectName = "rescaleFactor", objectClass = "numeric",
-                 desc = paste("rescale predicted rates of fire counts at any given temporal and spatial",
-                              "resolutions by a factor `rescaleFactor = new_res / old_res`.",
-                              "`rescaleFactor` is the ratio between the data aggregation scale used",
-                              "for model fitting and the scale at which predictions are to be made",
-                              "If not provided, defaults to (250 / 10000)^2"))
+                              "class(fireSense_IgnitionAndEscapeCovariates) == 'data.table'"))
   ),
   outputObjects = bindrows(
     createsOutput(objectName = "fireSense_IgnitionPredicted", objectClass = "RasterLayer",
@@ -119,6 +109,7 @@ IgnitionPredictRun <- function(sim) {
     rasterTemplate <- sim$flammableRTM
   }
 
+  rescaleFactor <- (raster::res(rasterTemplate)/fireSense_IgnitionFitted$fittingRes)^2
   if (!is.null(sim$fireSense_IgnitionFitted$rescales)) {
     rescaledLayers <- names(sim$fireSense_IgnitionFitted$rescales)
 
@@ -144,8 +135,8 @@ IgnitionPredictRun <- function(sim) {
   mu <- predictIgnition(sim$fireSense_IgnitionFitted[["formula"]][-2],
                         dataForPredict,
                         sim$fireSense_IgnitionFitted$coef,
-                        sim$rescaleFactor,
-                        sim$lambdaRescaleFactor,
+                        rescaleFactor,
+                        sim$fireSense_IgnitionFitted$lambdaRescaleFactor,
                         sim$fireSense_IgnitionFitted$family$linkinv)
   # Create outputs
   sim$fireSense_IgnitionPredicted <- raster(rasterTemplate)
@@ -172,14 +163,6 @@ IgnitionPredictSave <- function(sim) {
   # cacheTags <- c(currentModule(sim), "function:.inputObjects")
   # dPath <- asPath(getOption("reproducible.destinationPath", dataPath(sim)), 1)
   # message(currentModule(sim), ": using dataPath '", dPath, "'.")
-
-  if (!suppliedElsewhere("rescaleFactor", sim)) {
-    sim$rescaleFactor <- (250 / 10000)^2
-  }
-
-  if (!suppliedElsewhere("lambdaRescaleFactor", sim)) {
-    sim$lambdaRescaleFactor <- 1
-  }
 
   return(invisible(sim))
 }
