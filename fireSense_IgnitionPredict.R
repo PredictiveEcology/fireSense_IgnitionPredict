@@ -80,6 +80,11 @@ doEvent.fireSense_IgnitionPredict = function(sim, eventTime, eventType, debug = 
 }
 
 IgnitionPredictRun <- function(sim) {
+  ## checks
+  if (is.null(sim$fireSense_IgnitionFitted$lambdaRescaleFactor)) {
+    stop("sim$fireSense_IgnitionFitted$lambdaRescaleFactor must be non-NULL and > 0")
+  }
+
   isRasterStack <- is(sim$fireSense_IgnitionAndEscapeCovariates,  "RasterStack")
   covsUsed <- rownames(attr(terms(sim$fireSense_IgnitionFitted$formula[-2]), "factors"))
   covsUsed <- grep("pw", covsUsed, invert = TRUE, value = TRUE)
