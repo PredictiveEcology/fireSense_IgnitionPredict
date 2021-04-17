@@ -146,9 +146,9 @@ IgnitionPredictRun <- function(sim) {
                         sim$fireSense_IgnitionFitted$family$linkinv)
   # Create outputs
   sim$fireSense_IgnitionPredicted <- raster(rasterTemplate)
+  sim$fireSense_IgnitionPredicted[nonNaPixels] <- mu
   sim$fireSense_IgnitionPredictedVec <- mu
   names(sim$fireSense_IgnitionPredictedVec) <- as.character(nonNaPixels)
-  sim$fireSense_IgnitionPredicted[nonNaPixels] <- mu
 
   return(invisible(sim))
 }
