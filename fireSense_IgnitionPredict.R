@@ -114,7 +114,7 @@ IgnitionPredictRun <- function(sim) {
     rasterTemplate <- sim$flammableRTM
   }
 
-  rescaleFactor <- (raster::res(rasterTemplate)/fireSense_IgnitionFitted$fittingRes)^2
+  rescaleFactor <- (raster::res(rasterTemplate)[1]/sim$fireSense_IgnitionFitted$fittingRes)^2
 
   if (!is.null(sim$fireSense_IgnitionFitted$rescales)) {
     rescaledLayers <- names(sim$fireSense_IgnitionFitted$rescales)
