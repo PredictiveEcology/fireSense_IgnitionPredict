@@ -135,8 +135,12 @@ IgnitionPredictRun <- function(sim) {
     fireSense_IgnitionCovariates[, eval(rescaledLayers) := rescaledVals]
   }
 
-  knots <- as.list(sim$fireSense_IgnitionFitted$knots)
-  dataForPredict <- data.frame(data.table(fireSense_IgnitionCovariates, knots)[])
+  if (!is.null(sim$fireSense_IgnitionFitted$knots)) {
+    knots <- as.list(sim$fireSense_IgnitionFitted$knots)
+    dataForPredict <- data.frame(fireSense_IgnitionCovariates[], knots)
+  } else {
+    dataForPredict <- data.frame(fireSense_IgnitionCovariates[])
+  }
   dataForPredict <- na.omit(dataForPredict[])
   mu <- predictIgnition(sim$fireSense_IgnitionFitted[["formula"]][-2],
                         dataForPredict,
