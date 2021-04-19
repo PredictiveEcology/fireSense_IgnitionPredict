@@ -12,7 +12,8 @@ defineModule(sim, list(
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "fireSense_IgnitionPredict.Rmd"),
-  reqdPkgs = list("magrittr", "raster"),
+  reqdPkgs = list("magrittr", "raster",
+                  "PredictiveEcology/fireSenseUtils@development (>=0.0.4.9080)"),
   parameters = bindrows(
     defineParameter(name = ".runInitialTime", class = "numeric", default = start(sim),
                     desc = "when to start this module? By default, the start
@@ -175,14 +176,4 @@ IgnitionPredictSave <- function(sim) {
   # message(currentModule(sim), ": using dataPath '", dPath, "'.")
 
   return(invisible(sim))
-}
-
-## TODO: move to fireSenseUtils
-predictIgnition <- function(model, data, coefs, rescaleFactor, lambdaRescaleFactor, linkinv) {
-  mm <- model.matrix(model, data) #%>%
-  pred <- mm %*% coefs
-  pred <- drop(pred)
-  pred <- linkinv(pred)
-  pred <- pred * rescaleFactor
-  pred * lambdaRescaleFactor
 }
