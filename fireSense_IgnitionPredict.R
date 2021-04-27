@@ -129,7 +129,7 @@ IgnitionPredictRun <- function(sim) {
             if (grepl("rescale", rescaler)) {
               rescaleKnown2(r[], 0, 1, min(cmm), max(cmm))
             } else {
-              eval(parse(text = rescaleFun), env = fireSense_IgnitionCovariates)
+              eval(parse(text = rescaler), env = fireSense_IgnitionCovariates)
             }
           })
     # # update original object
