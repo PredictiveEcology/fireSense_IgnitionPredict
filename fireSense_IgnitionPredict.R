@@ -83,7 +83,7 @@ doEvent.fireSense_IgnitionPredict = function(sim, eventTime, eventType, debug = 
 IgnitionPredictRun <- function(sim) {
   ## checks
   if (is.null(sim$fireSense_IgnitionFitted$lambdaRescaleFactor)) {
-    stop("sim$fireSense_IgnitionFitted$lambdaRescaleFactor must be non-NULL and > 0")
+    sim$fireSense_IgnitionFitted$lambdaRescaleFactor <- 1
   }
 
   isRasterStack <- is(sim$fireSense_IgnitionAndEscapeCovariates,  "RasterStack")
