@@ -4,7 +4,9 @@ defineModule(sim, list(
                  fireSense_IgnitionFit module. These can be used to feed the
                  ignition component of a landscape fire model (e.g fireSense).",
   keywords = c("fire frequency", "additive property", "poisson", "negative binomial", "fireSense"),
-  authors = c(person("Jean", "Marchal", email = "jean.d.marchal@gmail.com", role = c("aut", "cre"))),
+  authors = c(
+    person("Jean", "Marchal", email = "jean.d.marchal@gmail.com", role = c("aut", "cre"))
+  ),
   childModules = character(),
   version = list(SpaDES.core = "0.1.0", fireSense_IgnitionPredict = "0.2.0"),
   spatialExtent = raster::extent(rep(NA_real_, 4)),
@@ -15,40 +17,46 @@ defineModule(sim, list(
   reqdPkgs = list("magrittr", "raster",
                   "PredictiveEcology/fireSenseUtils@development (>=0.0.4.9080)"),
   parameters = bindrows(
-    defineParameter(name = ".runInitialTime", class = "numeric", default = start(sim),
+    defineParameter(".runInitialTime", "numeric", start(sim), NA, NA,
                     desc = "when to start this module? By default, the start
                             time of the simulation."),
-    defineParameter(name = ".runInterval", class = "numeric", default = 1,
+    defineParameter(".runInterval", "numeric", 1, NA, NA,
                     desc = "optional. Interval between two runs of this module,
                             expressed in units of simulation time. By default, 1 year."),
-    defineParameter(name = ".saveInitialTime", class = "numeric", default = NA,
+    defineParameter(".saveInitialTime", "numeric", NA, NA, NA,
                     desc = "optional. When to start saving output to a file."),
-    defineParameter(name = ".saveInterval", class = "numeric", default = NA,
+    defineParameter(".saveInterval", "numeric", NA, NA, NA,
                     desc = "optional. Interval between save events."),
-    defineParameter(".useCache", "logical", FALSE, NA, NA, "Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant")
+    defineParameter(".useCache", "logical", FALSE, NA, NA,
+                    desc = paste("Should this entire module be run with caching activated?",
+                                 "This is generally intended for data-type modules,",
+                                 "where stochasticity and time are not relevant"))
   ),
   inputObjects = bindrows(
-    expectsInput(objectName = "covMinMax_ignition",
-                 objectClass = "data.table",
-                 desc = "Table of the original ranges (min and max) of covariates"),
-    expectsInput(objectName = "fireSense_IgnitionFitted", objectClass = "fireSense_IgnitionFit",
-                 desc = "An object of class fireSense_IgnitionFit created with the fireSense_IgnitionFit module."),
-    expectsInput(objectName = "fireSense_IgnitionAndEscapeCovariates", objectClass = c("data.frame", "data.table", "RasterStack"),
-                 desc = paste("An object of class RasterStack (named according to variables)",
-                              "or data.frame/data.table with prediction variables. If a data.frame/data.table, then a",
-                              "column named 'pixelID' needs to be supplied when outputAsRaster is TRUE"),
-                 sourceURL = NA_character_),
-    expectsInput(objectName = "flammableRTM", objectClass = "RasterLayer",
+    expectsInput("covMinMax_ignition", "data.table",
+                 desc = "Table of the original ranges (min and max) of covariates",
+                 sourceURL = NA),
+    expectsInput("fireSense_IgnitionFitted", "fireSense_IgnitionFit",
+                 desc = "An object of class `fireSense_IgnitionFit` created with the `fireSense_IgnitionFit` module.",
+                 sourceURL = NA),
+    expectsInput("fireSense_IgnitionAndEscapeCovariates", c("data.frame", "data.table", "RasterStack"),
+                 desc = paste("An object of class `RasterStack` (named according to variables)",
+                              "or `data.frame`/`data.table` with prediction variables.",
+                              "If a `data.frame`/`data.table`, then a",
+                              "column named 'pixelID' needs to be supplied when `outputAsRaster` is TRUE."), ## TODO: outputAsRaster not used?
+                 sourceURL = NA),
+    expectsInput("flammableRTM", "RasterLayer",
                  desc = paste("OPTIONAL. A raster with values of 1 for every flammable pixel, required if",
-                              "class(fireSense_IgnitionAndEscapeCovariates) == 'data.table'"))
+                              "`is(fireSense_IgnitionAndEscapeCovariates, 'data.table')`."),
+                 sourceURL = NA)
   ),
   outputObjects = bindrows(
-    createsOutput(objectName = "fireSense_IgnitionPredicted", objectClass = "RasterLayer",
+    createsOutput("fireSense_IgnitionPredicted", "RasterLayer",
                   desc = "a raster layer of ignition probabilities"),
-    createsOutput(objectName = "fireSense_IgnitionPredictedVec", objectClass = "numeric",
+    createsOutput("fireSense_IgnitionPredictedVec", "numeric",
                   desc = paste("a named numeric vector ignition probabilities, with names",
-                               "corresponding to non-NA pixels in 'fireSense_IgnitionPredicted'",
-                               "and 'flammableRTM'"))
+                               "corresponding to non-NA pixels in `fireSense_IgnitionPredicted`",
+                               "and `flammableRTM`."))
   )
 ))
 
@@ -121,17 +129,16 @@ IgnitionPredictRun <- function(sim) {
     rescaledLayers <- names(sim$fireSense_IgnitionFitted$rescales)
 
     # # rescale the relevant values
-    rescaledVals <-
-      Map(r = fireSense_IgnitionCovariates[ , ..rescaledLayers],
-          cmm = sim$covMinMax_ignition[, ..rescaledLayers],
-          rescaler = sim$fireSense_IgnitionFitted$rescales[rescaledLayers],
-          function(r, cmm, rescaler) {
-            if (grepl("rescale", rescaler)) {
-              rescaleKnown2(r[], 0, 1, min(cmm), max(cmm))
-            } else {
-              eval(parse(text = rescaler), env = fireSense_IgnitionCovariates)
-            }
-          })
+    rescaledVals <- Map(r = fireSense_IgnitionCovariates[ , ..rescaledLayers],
+                        cmm = sim$covMinMax_ignition[, ..rescaledLayers],
+                        rescaler = sim$fireSense_IgnitionFitted$rescales[rescaledLayers],
+                        function(r, cmm, rescaler) {
+                          if (grepl("rescale", rescaler)) {
+                            rescaleKnown2(r[], 0, 1, min(cmm), max(cmm))
+                          } else {
+                            eval(parse(text = rescaler), env = fireSense_IgnitionCovariates)
+                          }
+                        })
     # # update original object
     fireSense_IgnitionCovariates[, eval(rescaledLayers) := rescaledVals]
   }
