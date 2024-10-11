@@ -9,13 +9,12 @@ defineModule(sim, list(
   ),
   childModules = character(),
   version = list(SpaDES.core = "0.1.0", fireSense_IgnitionPredict = "0.2.0"),
-  spatialExtent = raster::extent(rep(NA_real_, 4)),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
   documentation = list("README.txt", "fireSense_IgnitionPredict.Rmd"),
-  reqdPkgs = list("magrittr", "raster",
-                  "PredictiveEcology/fireSenseUtils@development (>=0.0.4.9080)"),
+  reqdPkgs = list("magrittr", "terra",
+                  "PredictiveEcology/fireSenseUtils@development (>=0.0.5.9066)"),
   parameters = bindrows(
     defineParameter(".runInitialTime", "numeric", start(sim), NA, NA,
                     desc = "when to start this module? By default, the start
@@ -39,19 +38,18 @@ defineModule(sim, list(
     expectsInput("fireSense_IgnitionFitted", "fireSense_IgnitionFit",
                  desc = "An object of class `fireSense_IgnitionFit` created with the `fireSense_IgnitionFit` module.",
                  sourceURL = NA),
-    expectsInput("fireSense_IgnitionAndEscapeCovariates", c("data.frame", "data.table", "RasterStack"),
-                 desc = paste("An object of class `RasterStack` (named according to variables)",
+    expectsInput("fireSense_IgnitionAndEscapeCovariates", c("data.table", "SpatRaser"),
+                 desc = paste("An object of class `SpatRaster` (named according to variables)",
                               "or `data.frame`/`data.table` with prediction variables.",
                               "If a `data.frame`/`data.table`, then a",
-                              "column named 'pixelID' needs to be supplied when `outputAsRaster` is TRUE."), ## TODO: outputAsRaster not used?
-                 sourceURL = NA),
-    expectsInput("flammableRTM", "RasterLayer",
+                              "column named 'pixelID' needs to be supplied")),
+    expectsInput("flammableRTM", "SpatRaster",
                  desc = paste("OPTIONAL. A raster with values of 1 for every flammable pixel, required if",
                               "`is(fireSense_IgnitionAndEscapeCovariates, 'data.table')`."),
                  sourceURL = NA)
   ),
   outputObjects = bindrows(
-    createsOutput("fireSense_IgnitionPredicted", "RasterLayer",
+    createsOutput("fireSense_IgnitionPredicted", "SpatRaster",
                   desc = "a raster layer of ignition probabilities"),
     createsOutput("fireSense_IgnitionPredictedVec", "numeric",
                   desc = paste("a named numeric vector ignition probabilities, with names",
@@ -94,13 +92,13 @@ IgnitionPredictRun <- function(sim) {
     sim$fireSense_IgnitionFitted$lambdaRescaleFactor <- 1
   }
 
-  isRasterStack <- is(sim$fireSense_IgnitionAndEscapeCovariates,  "RasterStack")
+  isRasterStack <- if(inherits(sim$fireSense_IgnitionAndEscapeCovariates,  "SpatRaster"))
   covsUsed <- rownames(attr(terms(sim$fireSense_IgnitionFitted$formula[-2]), "factors"))
   covsUsed <- grep("pw", covsUsed, invert = TRUE, value = TRUE)
 
   if (isRasterStack) {
     fireSense_IgnitionCovariates <- as.data.table(sim$fireSense_IgnitionAndEscapeCovariates[[covsUsed]][])
-    rasterTemplate <- raster(sim$fireSense_IgnitionAndEscapeCovariates[[1]])
+    rasterTemplate <- rast(sim$fireSense_IgnitionAndEscapeCovariates[[1]])
     nonNaPixels <- which(rowSums(is.na(fireSense_IgnitionCovariates)) != NCOL(fireSense_IgnitionCovariates))
     fireSense_IgnitionCovariates <- fireSense_IgnitionCovariates[nonNaPixels]
   } else {
@@ -123,7 +121,7 @@ IgnitionPredictRun <- function(sim) {
     rasterTemplate <- sim$flammableRTM
   }
 
-  rescaleFactor <- (raster::res(rasterTemplate)[1]/sim$fireSense_IgnitionFitted$fittingRes)^2
+  rescaleFactor <- (res(rasterTemplate)[1]/sim$fireSense_IgnitionFitted$fittingRes)^2
 
   if (!is.null(sim$fireSense_IgnitionFitted$rescales)) {
     rescaledLayers <- names(sim$fireSense_IgnitionFitted$rescales)
@@ -157,7 +155,7 @@ IgnitionPredictRun <- function(sim) {
                         sim$fireSense_IgnitionFitted$lambdaRescaleFactor,
                         sim$fireSense_IgnitionFitted$family$linkinv)
   # Create outputs
-  sim$fireSense_IgnitionPredicted <- raster(rasterTemplate)
+  sim$fireSense_IgnitionPredicted <- rast(rasterTemplate)
   sim$fireSense_IgnitionPredicted[nonNaPixels] <- mu
   sim$fireSense_IgnitionPredictedVec <- mu
   names(sim$fireSense_IgnitionPredictedVec) <- as.character(nonNaPixels)
@@ -169,7 +167,7 @@ IgnitionPredictSave <- function(sim) {
   timeUnit <- timeunit(sim)
   currentTime <- time(sim, timeUnit)
 
-  raster::writeRaster(
+  writeRaster(
     sim$fireSense_IgnitionPredicted,
     filename = file.path(paths(sim)$out, paste0("fireSense_IgnitionPredicted_", timeUnit, currentTime, ".tif"))
   )
