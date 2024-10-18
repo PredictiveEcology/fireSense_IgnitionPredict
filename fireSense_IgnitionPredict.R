@@ -92,9 +92,9 @@ IgnitionPredictRun <- function(sim) {
     sim$fireSense_IgnitionFitted$lambdaRescaleFactor <- 1
   }
 
-  isRasterStack <- if(inherits(sim$fireSense_IgnitionAndEscapeCovariates,  "SpatRaster"))
+  isRasterStack <- inherits(sim$fireSense_IgnitionAndEscapeCovariates, "SpatRaster")
   covsUsed <- rownames(attr(terms(sim$fireSense_IgnitionFitted$formula[-2]), "factors"))
-  covsUsed <- grep("pw", covsUsed, invert = TRUE, value = TRUE)
+  # covsUsed <- grep("pw", covsUsed, invert = TRUE, value = TRUE)
 
   if (isRasterStack) {
     fireSense_IgnitionCovariates <- as.data.table(sim$fireSense_IgnitionAndEscapeCovariates[[covsUsed]][])
