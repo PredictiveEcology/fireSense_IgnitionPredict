@@ -93,7 +93,7 @@ IgnitionPredictRun <- function(sim) {
   }
 
   isRasterStack <- inherits(sim$fireSense_IgnitionAndEscapeCovariates, "SpatRaster")
-  covsUsed <- rownames(attr(terms(sim$fireSense_IgnitionFitted$formula[-2]), "factors"))
+  # covsUsed <- rownames(attr(terms(sim$fireSense_IgnitionFitted$model$formula[-2]), "factors"))
   # covsUsed <- grep("pw", covsUsed, invert = TRUE, value = TRUE)
 
   if (isRasterStack) {
@@ -109,10 +109,10 @@ IgnitionPredictRun <- function(sim) {
         sim$fireSense_IgnitionAndEscapeCovariates
       }
 
-    fireSense_IgnitionCovariates <- fireSense_IgnitionCovariates[, ..covsUsed]
+    # fireSense_IgnitionCovariates <- fireSense_IgnitionCovariates[, ..covsUsed]
     ## checks
     if (is.null(sim$flammableRTM)) {
-      stop("'fireSense_IgnitionAndEscapeCovariates' is a table. Please supply 'flammableRTM'")
+      stop("As 'fireSense_IgnitionAndEscapeCovariates' is a table, please supply 'flammableRTM'")
     }
     if (!"pixelID" %in% colnames(sim$fireSense_IgnitionAndEscapeCovariates)) {
       stop("fireSense_IgnitionAndEscapeCovariates must have a 'pixelID' column")
@@ -137,23 +137,18 @@ IgnitionPredictRun <- function(sim) {
                             eval(parse(text = rescaler), env = fireSense_IgnitionCovariates)
                           }
                         })
-    # # update original object
+
     fireSense_IgnitionCovariates[, eval(rescaledLayers) := rescaledVals]
   }
 
-  if (!is.null(sim$fireSense_IgnitionFitted$knots)) {
-    knots <- as.list(sim$fireSense_IgnitionFitted$knots)
-    dataForPredict <- data.frame(fireSense_IgnitionCovariates[], knots)
-  } else {
-    dataForPredict <- data.frame(fireSense_IgnitionCovariates[])
-  }
+
+  dataForPredict <- data.frame(fireSense_IgnitionCovariates[])
   dataForPredict <- na.omit(dataForPredict[])
-  mu <- predictIgnition(sim$fireSense_IgnitionFitted[["formula"]][-2],
+
+  mu <- predictIgnition(model = sim$fireSense_IgnitionFitted$model,
                         dataForPredict,
-                        sim$fireSense_IgnitionFitted$coef,
                         rescaleFactor,
-                        sim$fireSense_IgnitionFitted$lambdaRescaleFactor,
-                        sim$fireSense_IgnitionFitted$family$linkinv)
+                        sim$fireSense_IgnitionFitted$lambdaRescaleFactor)
   # Create outputs
   sim$fireSense_IgnitionPredicted <- rast(rasterTemplate)
   sim$fireSense_IgnitionPredicted[nonNaPixels] <- mu
