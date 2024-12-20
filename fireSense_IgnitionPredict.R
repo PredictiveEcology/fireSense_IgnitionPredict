@@ -15,7 +15,11 @@ defineModule(sim, list(
   documentation = list("README.txt", "fireSense_IgnitionPredict.Rmd"),
   reqdPkgs = list("magrittr", "terra",
                   "PredictiveEcology/fireSenseUtils@development (>=0.0.5.9066)"),
+  loadOrder = list(after = "fireSense_dataPrepPredict"),
   parameters = bindrows(
+    defineParameter("ignitionFit_Predict_Package", "character", "glmmTMB", NA, NA,
+                    desc = paste("The package used to fit the ignitionFit model.",
+                                 "It wil be loaded using Require.")),
     defineParameter(".runInitialTime", "numeric", start(sim), NA, NA,
                     desc = "when to start this module? By default, the start
                             time of the simulation."),
@@ -50,11 +54,7 @@ defineModule(sim, list(
   ),
   outputObjects = bindrows(
     createsOutput("fireSense_IgnitionPredicted", "SpatRaster",
-                  desc = "a raster layer of ignition probabilities"),
-    createsOutput("fireSense_IgnitionPredictedVec", "numeric",
-                  desc = paste("a named numeric vector ignition probabilities, with names",
-                               "corresponding to non-NA pixels in `fireSense_IgnitionPredicted`",
-                               "and `flammableRTM`."))
+                  desc = "a raster layer of ignition probabilities")
   )
 ))
 
@@ -64,6 +64,9 @@ doEvent.fireSense_IgnitionPredict = function(sim, eventTime, eventType, debug = 
   switch(
     eventType,
     init = {
+
+      Require(P(sim)$ignitionFit_Predict_Package)
+
       sim <- scheduleEvent(sim, eventTime = P(sim)$.runInitialTime, moduleName, "run", eventPriority = 5.11)
 
       if (!is.na(P(sim)$.saveInitialTime))
@@ -87,6 +90,7 @@ doEvent.fireSense_IgnitionPredict = function(sim, eventTime, eventType, debug = 
 }
 
 IgnitionPredictRun <- function(sim) {
+
   ## checks
   if (is.null(sim$fireSense_IgnitionFitted$lambdaRescaleFactor)) {
     sim$fireSense_IgnitionFitted$lambdaRescaleFactor <- 1
@@ -142,18 +146,16 @@ IgnitionPredictRun <- function(sim) {
   }
 
 
-  dataForPredict <- data.frame(fireSense_IgnitionCovariates[])
-  dataForPredict <- na.omit(dataForPredict[])
+  dataForPredict <- na.omit(fireSense_IgnitionCovariates)
 
-  mu <- predictIgnition(model = sim$fireSense_IgnitionFitted$model,
-                        dataForPredict,
-                        rescaleFactor,
-                        sim$fireSense_IgnitionFitted$lambdaRescaleFactor)
+  sim$fireSense_IgnitionAndEscapeCovariates[, igProb := predictIgnition(model = sim$fireSense_IgnitionFitted$model,
+                                                                        dataForPredict,
+                                                                        rescaleFactor,
+                                                                        sim$fireSense_IgnitionFitted$lambdaRescaleFactor)]
   # Create outputs
   sim$fireSense_IgnitionPredicted <- rast(rasterTemplate)
-  sim$fireSense_IgnitionPredicted[nonNaPixels] <- mu
-  sim$fireSense_IgnitionPredictedVec <- mu
-  names(sim$fireSense_IgnitionPredictedVec) <- as.character(nonNaPixels)
+  sim$fireSense_IgnitionPredicted[sim$fireSense_IgnitionAndEscapeCovariates$pixelID] <-
+    sim$fireSense_IgnitionAndEscapeCovariates$igProb
 
   return(invisible(sim))
 }
