@@ -53,7 +53,7 @@ Use them to feed the ignition component of a landscape fire model (e.g fireSense
 Table \@ref(tab:moduleInputs-fireSense-IgnitionPredict) shows the full list of module inputs.
 
 ```{r moduleInputs-fireSense-IgnitionPredict, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
-df_inputs <- SpaDES.core::moduleInputs("fireSense_IgnitionPredict", "/private/var/folders/l2/hy6b0sl977bcd8695nt6j7s80000gn/T/RtmpTnPn1y/modules_10222d50573f")
+df_inputs <- SpaDES.core::moduleInputs("fireSense_IgnitionPredict", "..")
 knitr::kable(df_inputs,
              caption = "List of (ref:fireSense-IgnitionPredict) input objects and their description.") |>
   kableExtra::kable_styling(latex_options = "scale_down", full_width = TRUE)
@@ -63,7 +63,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-Ignit
 
 
 ```{r moduleParams-fireSense-IgnitionPredict, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
-df_params <- SpaDES.core::moduleParams("fireSense_IgnitionPredict", "/private/var/folders/l2/hy6b0sl977bcd8695nt6j7s80000gn/T/RtmpTnPn1y/modules_10222d50573f")
+df_params <- SpaDES.core::moduleParams("fireSense_IgnitionPredict", "..")
 knitr::kable(df_params, caption = "List of (ref:fireSense-IgnitionPredict) parameters and their description.") |>
   kableExtra::kable_styling(latex_options = "scale_down", full_width = TRUE)
 ```
@@ -86,7 +86,7 @@ Write what is saved.
 Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-IgnitionPredict)).
 
 ```{r moduleOutputs-fireSense-IgnitionPredict, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
-df_outputs <- SpaDES.core::moduleOutputs("fireSense_IgnitionPredict", "/private/var/folders/l2/hy6b0sl977bcd8695nt6j7s80000gn/T/RtmpTnPn1y/modules_10222d50573f")
+df_outputs <- SpaDES.core::moduleOutputs("fireSense_IgnitionPredict", "..")
 knitr::kable(df_outputs, caption = "List of (ref:fireSense-IgnitionPredict) outputs and their description.") |>
   kableExtra::kable_styling(latex_options = "scale_down", full_width = TRUE)
 ```
