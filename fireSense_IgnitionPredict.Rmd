@@ -1,129 +1,105 @@
 ---
-title: "fireSense_IgnitionPredict"
-author: "Jean Marchal (jean.d.marchal@gmail.com)"
-date: "`r format(Sys.time(), '%B %Y')`"
+title: "fireSense_IgnitionPredict Manual"
+subtitle: "v.`r SpaDES.core::moduleMetadata(module = 'fireSense_IgnitionPredict', path = '..')$version`"
+date: "Last updated: `r Sys.Date()`"
 output:
-  html_document: default
-  pdf_document: default
+  bookdown::html_document2:
+    toc: true
+    toc_float: true
+    theme: sandstone
+    number_sections: false
+    df_print: paged
+    keep_md: yes
+editor_options:
+  chunk_output_type: console
+bibliography: citations/references_fireSense_IgnitionPredict.bib
+link-citations: true
+always_allow_html: true
 ---
 
-# Overview
-Predicts fire frequency or rates of fire counts using a model fitted with the fireSense_IgnitionFit module. Use them to feed the ignition component of a landscape fire model (e.g fireSense).
+# fireSense_IgnitionPredict Module
 
-# Download the module
-```{r download module, eval = FALSE, echo = TRUE}
-library(SpaDES)
+<!-- the following are text references used in captions for LaTeX compatibility -->
+(ref:fireSense-IgnitionPredict) *fireSense_IgnitionPredict*
 
-moduleName <- "fireSense_IgnitionPredict"
+```{r setup-fireSense-IgnitionPredict, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE, results = "hold") ## change to eval = TRUE if all chunks are to be evaluated
 
-spadesModulesDirectory <- tempdir() # Location where the module will be downloaded
+dir.create("figures", showWarnings = FALSE)
 
-downloadModule(moduleName, path = spadesModulesDirectory)
+download.file(url = "https://img.shields.io/badge/Made%20with-Markdown-1f425f.png",
+              destfile = "figures/markdownBadge.png",
+              mode = "wb")
 ```
 
-# Usage
-## Module parameters
-Name|Default|Description
-----|:-------|---------------------------------------------------------------------
-`modelObjName`|`"fireSense_IgnitionFitted"`|name of the object of class fireSense_IgnitionFit describing the statistical model used for predictions.
-`data`|`"dataFireSense_IgnitionPredict"`|a character vector indicating the names of objects in the `simList` environment in which to look for variables present in the model formula. `data` objects can be data.frames, RasterStacks or RasterLayers. However, data.frames cannot be mixed with objects of other classes.
-`mapping`|`NULL`|optional named vector or list of character strings mapping one or more variables in the model formula to those in `data` objects.
-`rescalFactor`|`1`|rescale predicted rates of fire counts at any given temporal and spatial resolutions by a factor $rescalFactor = new\_res / old\_res$. `rescalFactor` is the ratio between the data aggregation scale used for model fitting and the scale at which predictions are to be made.
-`.runInitialTime`|`start(simList)`|when to start this module? By default, the start time of the simulation.
-`.runInterval`|`1`|optional. Interval between two runs of this module, expressed in units of simulation time. By default, 1 year.
-`.saveInitialTime`|`NA`|optional. When to start saving outputs to a file.
-`.saveInterval`|`NA`|optional. Interval between save events.
-|||
+[![made-with-Markdown](figures/markdownBadge.png)](https://commonmark.org)
 
-## Usage example
-```{r module usage example, eval = FALSE}
-library(magrittr)
-library(raster)
-library(SpaDES)
+<!-- if knitting to pdf remember to add the pandoc_args: ["--extract-media", "."] option to yml in order to get the badge images -->
 
-set.seed(123)
+#### Authors:
 
-spadesModulesDirectory <- ".."
+`r paste(as.character(SpaDES.core::moduleMetadata(module = "fireSense_IgnitionPredict", path = '..')$authors), sep = ', ')`
+<!-- ideally separate authors with new lines, '\n' not working -->
 
-# Define simulation parameters
-times <- list(start = 1, end = 1, timeunit = "year")
-modules <- list("fireSense_IgnitionPredict")
-paths <- list(
-  modulePath = spadesModulesDirectory
-)
+## Module Overview
 
-# Create random weather and fire frequency data
-  # data.frame
-  dataFireSense_IgnitionPredict <- data.frame(
-    weather = rnorm(1000, 150, 30),
-    fireFrequency = rpois(1000, .5)
-  )
-  
-  nx <- ny <- 100
-  
-  # raster
-  dataFireSense_IgnitionPredict <- 
-    raster(nrows = ny, ncols = nx, xmn = -nx/2, xmx = nx/2, ymn = -ny/2, ymx = ny/2) %>%
-      gaussMap(scale = 300, var = 0.03, speedup = nx/5e2, inMemory = TRUE) %>%
-      stack %>% setNames("weather")
+### Module summary
 
-# Create a typical output of fireSense_IgnitionFit
-fireSense_IgnitionFitted <- list(
-  formula = fireFrequency ~ weather2,
-  family = poisson(),
-  coef = setNames(c(0.1, 0.01), c("intercept", "weather2"))
-)
-class(fireSense_IgnitionFitted) <- "fireSense_IgnitionFit"
+Predicts fire frequency or rates of fire counts using a model fitted with the `fireSense_IgnitionFit` module.
+Use them to feed the ignition component of a landscape fire model (e.g fireSense [@Marchal:2017a; @Marchal:2017b; @Marchal:2019]).
 
-# Define module parameters
-parameters <- list(
-  fireSense_IgnitionPredict = list(
-    modelName = "fireSense_IgnitionFitted",
-    data = "dataFireSense_IgnitionPredict",
-    mapping = list(weather2 = "weather"), # One can use mapping to map variables
-                                          # in the formula of the fitted object
-                                          # to those in data. Here weather2
-                                          # (formula) is mapped to weather (data).
-    rescalFactor = 10
-  )
-)
+### Module inputs and parameters
 
-# Objects to pass from the global environment to the simList environment
-objects <- c("dataFireSense_IgnitionPredict", "fireSense_IgnitionFitted")
+Table \@ref(tab:moduleInputs-fireSense-IgnitionPredict) shows the full list of module inputs.
 
-# Create the simList
-sim <- simInit(
-  times = times, 
-  params = parameters, 
-  modules = modules, 
-  objects = objects, 
-  paths = paths
-)
-
-sim <- spades(sim)
-sim$fireSense_IgnitionPredicted
+```{r moduleInputs-fireSense-IgnitionPredict, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
+df_inputs <- SpaDES.core::moduleInputs("fireSense_IgnitionPredict", "/private/var/folders/l2/hy6b0sl977bcd8695nt6j7s80000gn/T/RtmpTnPn1y/modules_10222d50573f")
+knitr::kable(df_inputs,
+             caption = "List of (ref:fireSense-IgnitionPredict) input objects and their description.") |>
+  kableExtra::kable_styling(latex_options = "scale_down", full_width = TRUE)
 ```
 
-# Events
-Events are scheduled as follows:
+Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-IgnitionPredict))
 
-- Module initialisation
-- Make predictions
 
-# Data dependencies
-## Input data
-- **fireSense_IgnitionFitted**: an object of class `fireSense_IgnitionFit` created with the fireSense_IgnitionFit module.
-- **dataFireSense_IgnitionPredict**: one or more data.frames, RasterLayers, RasterStacks or RasterBricks in which to look for variables with which to predict.
+```{r moduleParams-fireSense-IgnitionPredict, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
+df_params <- SpaDES.core::moduleParams("fireSense_IgnitionPredict", "/private/var/folders/l2/hy6b0sl977bcd8695nt6j7s80000gn/T/RtmpTnPn1y/modules_10222d50573f")
+knitr::kable(df_params, caption = "List of (ref:fireSense-IgnitionPredict) parameters and their description.") |>
+  kableExtra::kable_styling(latex_options = "scale_down", full_width = TRUE)
+```
 
-## Output data
-- **fireSense_IgnitionPredicted**: an object whose class depends on those in input:
+### Events
+<!-- TODO -->
+- Module initialization;
+- Make predictions;
 
-Input object class | Output object class
-:-:|:-:
-`data.frame` | `Numeric vector`
-`RasterLayer`<br>`RasterStack`<br>`RasterBrick` | `RasterLayer`
-||
+### Plotting
+<!-- TODO -->
+Write what is plotted.
 
-# Links to other modules
+### Saving
+<!-- TODO -->
+Write what is saved.
+
+### Module outputs
+
+Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-IgnitionPredict)).
+
+```{r moduleOutputs-fireSense-IgnitionPredict, echo = FALSE, eval = TRUE, message = FALSE, warning = FALSE}
+df_outputs <- SpaDES.core::moduleOutputs("fireSense_IgnitionPredict", "/private/var/folders/l2/hy6b0sl977bcd8695nt6j7s80000gn/T/RtmpTnPn1y/modules_10222d50573f")
+knitr::kable(df_outputs, caption = "List of (ref:fireSense-IgnitionPredict) outputs and their description.") |>
+  kableExtra::kable_styling(latex_options = "scale_down", full_width = TRUE)
+```
+
+### Links to other modules
+
+<!-- TODO: add links to other fireSense modules -->
 Predictions made with this module can be used to feed the ignition component of a landscape fire model (e.g fireSense).
 
+### Getting help
+
+- <https://github.com/PredictiveEcology/fireSense_IgnitionPredict/issues>
+
+## References
+
+<!-- autogenerated from bibligraphy -->
