@@ -17,7 +17,7 @@ defineModule(sim, list(
   citation = list("citation.bib"),
   documentation = list("README.txt", "fireSense_IgnitionPredict.Rmd"),
   reqdPkgs = list("magrittr", "terra",
-                  "PredictiveEcology/fireSenseUtils@development (>=0.0.5.9066)"),
+                  "PredictiveEcology/fireSenseUtils@development (>=0.0.5.9090)"),
   loadOrder = list(after = "fireSense_dataPrepPredict"),
   parameters = bindrows(
     defineParameter("ignitionFit_Predict_Package", "character", "glmmTMB", NA, NA,
@@ -100,8 +100,7 @@ IgnitionPredictRun <- function(sim) {
   }
 
   isRasterStack <- inherits(sim$fireSense_IgnitionAndEscapeCovariates, "SpatRaster")
-  # covsUsed <- rownames(attr(terms(sim$fireSense_IgnitionFitted$model$formula[-2]), "factors"))
-  # covsUsed <- grep("pw", covsUsed, invert = TRUE, value = TRUE)
+
 
   if (isRasterStack) {
     fireSense_IgnitionCovariates <- as.data.table(sim$fireSense_IgnitionAndEscapeCovariates[[covsUsed]][])
@@ -128,33 +127,21 @@ IgnitionPredictRun <- function(sim) {
     rasterTemplate <- sim$flammableRTM
   }
 
+
   rescaleFactor <- (res(rasterTemplate)[1]/sim$fireSense_IgnitionFitted$fittingRes)^2
 
-  if (!is.null(sim$fireSense_IgnitionFitted$rescales)) {
-    rescaledLayers <- names(sim$fireSense_IgnitionFitted$rescales)
-
-    # # rescale the relevant values
-    rescaledVals <- Map(r = fireSense_IgnitionCovariates[ , ..rescaledLayers],
-                        cmm = sim$covMinMax_ignition[, ..rescaledLayers],
-                        rescaler = sim$fireSense_IgnitionFitted$rescales[rescaledLayers],
-                        function(r, cmm, rescaler) {
-                          if (grepl("rescale", rescaler)) {
-                            rescaleKnown2(r[], 0, 1, min(cmm), max(cmm))
-                          } else {
-                            eval(parse(text = rescaler), env = fireSense_IgnitionCovariates)
-                          }
-                        })
-
-    fireSense_IgnitionCovariates[, eval(rescaledLayers) := rescaledVals]
-  }
-
-
   dataForPredict <- na.omit(fireSense_IgnitionCovariates)
+
+  if (!is.null(sim$fireSense_IgnitionFitted$rescales)) {
+    dataForPredict <- rescaleVarsByMagnitude(dataForPredict,
+                                             sim$fireSense_IgnitionFitted$rescales)
+  }
 
   sim$fireSense_IgnitionAndEscapeCovariates[, igProb := predictIgnition(model = sim$fireSense_IgnitionFitted$model,
                                                                         dataForPredict,
                                                                         rescaleFactor,
                                                                         sim$fireSense_IgnitionFitted$lambdaRescaleFactor)]
+
   # Create outputs
   sim$fireSense_IgnitionPredicted <- rast(rasterTemplate)
   sim$fireSense_IgnitionPredicted[sim$fireSense_IgnitionAndEscapeCovariates$pixelID] <-
