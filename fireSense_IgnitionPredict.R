@@ -39,8 +39,8 @@ defineModule(sim, list(
                                  "where stochasticity and time are not relevant"))
   ),
   inputObjects = bindrows(
-    expectsInput("covMinMax_ignition", "data.table",
-                 desc = "Table of the original ranges (min and max) of covariates",
+    expectsInput("fireSense_EscapeFitted", "fireSense_EscapeFit",
+                 desc = "An object of class `fireSense_EscapeFit` created with the `fireSense_IgnitionFit` module.",
                  sourceURL = NA),
     expectsInput("fireSense_IgnitionFitted", "fireSense_IgnitionFit",
                  desc = "An object of class `fireSense_IgnitionFit` created with the `fireSense_IgnitionFit` module.",
@@ -50,14 +50,14 @@ defineModule(sim, list(
                               "or `data.frame`/`data.table` with prediction variables.",
                               "If a `data.frame`/`data.table`, then a",
                               "column named 'pixelID' needs to be supplied")),
-    expectsInput("flammableRTM", "SpatRaster",
-                 desc = paste("OPTIONAL. A raster with values of 1 for every flammable pixel, required if",
-                              "`is(fireSense_IgnitionAndEscapeCovariates, 'data.table')`."),
-                 sourceURL = NA)
+    expectsInput("flammableRTM", "SpatRaster", sourceURL = NA,
+                 desc = "RTM without ice/rocks/urban/water. Flammable map with 0 and 1."),
   ),
   outputObjects = bindrows(
-    createsOutput("fireSense_IgnitionPredicted", "SpatRaster",
-                  desc = "a raster layer of ignition probabilities")
+    createsOutput("fireSense_IgnitionProb", "SpatRaster",
+                  desc = "a raster layer of ignition probabilities"),
+    createsOutput("ignitionsAndEscapes", "data.table",
+                 "A data.table containing pixelID (referencing flammableRTM), ignition, and escape")
   )
 ))
 
@@ -93,43 +93,16 @@ doEvent.fireSense_IgnitionPredict = function(sim, eventTime, eventType, debug = 
 }
 
 IgnitionPredictRun <- function(sim) {
-
+  browser()
   ## checks
   if (is.null(sim$fireSense_IgnitionFitted$lambdaRescaleFactor)) {
     sim$fireSense_IgnitionFitted$lambdaRescaleFactor <- 1
   }
 
-  isRasterStack <- inherits(sim$fireSense_IgnitionAndEscapeCovariates, "SpatRaster")
+  fireSense_IgnitionCovariates <- sim$fireSense_IgnitionAndEscapeCovariates
 
-
-  if (isRasterStack) {
-    fireSense_IgnitionCovariates <- as.data.table(sim$fireSense_IgnitionAndEscapeCovariates[[covsUsed]][])
-    rasterTemplate <- rast(sim$fireSense_IgnitionAndEscapeCovariates[[1]])
-    nonNaPixels <- which(rowSums(is.na(fireSense_IgnitionCovariates)) != NCOL(fireSense_IgnitionCovariates))
-    fireSense_IgnitionCovariates <- fireSense_IgnitionCovariates[nonNaPixels]
-  } else {
-    fireSense_IgnitionCovariates <-
-      if (!is(sim$fireSense_IgnitionAndEscapeCovariates, "data.table")) {
-        as.data.table(sim$fireSense_IgnitionAndEscapeCovariates)
-      } else {
-        sim$fireSense_IgnitionAndEscapeCovariates
-      }
-
-    # fireSense_IgnitionCovariates <- fireSense_IgnitionCovariates[, ..covsUsed]
-    ## checks
-    if (is.null(sim$flammableRTM)) {
-      stop("As 'fireSense_IgnitionAndEscapeCovariates' is a table, please supply 'flammableRTM'")
-    }
-    if (!"pixelID" %in% colnames(sim$fireSense_IgnitionAndEscapeCovariates)) {
-      stop("fireSense_IgnitionAndEscapeCovariates must have a 'pixelID' column")
-    }
-    nonNaPixels <- sim$fireSense_IgnitionAndEscapeCovariates$pixelID
-    rasterTemplate <- sim$flammableRTM
-  }
-
-
+  nonNaPixels <- sim$fireSense_IgnitionAndEscapeCovariates$pixelID
   rescaleFactor <- (res(rasterTemplate)[1]/sim$fireSense_IgnitionFitted$fittingRes)^2
-
   dataForPredict <- na.omit(fireSense_IgnitionCovariates)
 
   if (!is.null(sim$fireSense_IgnitionFitted$rescales)) {
@@ -139,13 +112,38 @@ IgnitionPredictRun <- function(sim) {
 
   sim$fireSense_IgnitionAndEscapeCovariates[, igProb := predictIgnition(model = sim$fireSense_IgnitionFitted$model,
                                                                         dataForPredict,
-                                                                        rescaleFactor,
+                                                                        rescaleFactor = 1,
                                                                         sim$fireSense_IgnitionFitted$lambdaRescaleFactor)]
-
   # Create outputs
-  sim$fireSense_IgnitionPredicted <- rast(rasterTemplate)
-  sim$fireSense_IgnitionPredicted[sim$fireSense_IgnitionAndEscapeCovariates$pixelID] <-
-    sim$fireSense_IgnitionAndEscapeCovariates$igProb
+
+  ## Ignite - accounting for spatial resolution of models
+  igDisAggFactor <- c(res(sim$fireSense_IgnitionPredicted)[1]) /c(res(sim$flammableRTM)[1])
+
+  igs <- as.data.table(sim$fireSense_IgnitionPredicted, cells = TRUE)
+  igs[, ignited := rpois(n = length(ignitionProbs),
+                         prob = ignitionProbs)]
+  igRas <- rast(sim$fireSense_IgnitionPredicted, vals = igs$cells)
+  igRas <- disagg(igRas, fact= igDisAggFactor)
+  igRas[sim$flammableRTM[] != 1] <- NA
+  igRas <- as.data.table(igRas, cells = TRUE)
+  setnames(igRas, new = c("pixelID", "chunkyPixels"))
+  igs <- igs[igRas, on = c("cells" = "chunkyPixels")]
+
+  #now, randomly sample
+  #use unique because of multiple pixelID per chunkyPixel
+  drawList <- unique(igs[ignited > 0, .(chunkyPixels, ignited)])
+  pixelID_igs <- sapply(1:nrow(drawList),
+                        FUN = function(n, drawList = drawList, igs = igs){
+                          sampledChunk <- drawList[n,]
+                          pixelID_pop <- igs[chunkyPixel == sampledChunk$chunkyPixel]
+                          drawn <- sample(pixelID_pop$pixelID, size = sampledChunk$ignited)
+                          return(drawn)
+                        })
+
+  ignited <- sample(ignited) # Randomize order
+
+
+
 
   return(invisible(sim))
 }
