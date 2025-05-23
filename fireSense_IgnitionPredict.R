@@ -93,7 +93,7 @@ doEvent.fireSense_IgnitionPredict = function(sim, eventTime, eventType, debug = 
 }
 
 IgnitionPredictRun <- function(sim) {
-  browser()
+
   ## checks
   if (is.null(sim$fireSense_IgnitionFitted$lambdaRescaleFactor)) {
     sim$fireSense_IgnitionFitted$lambdaRescaleFactor <- 1
@@ -102,7 +102,6 @@ IgnitionPredictRun <- function(sim) {
   fireSense_IgnitionCovariates <- sim$fireSense_IgnitionAndEscapeCovariates
 
   nonNaPixels <- sim$fireSense_IgnitionAndEscapeCovariates$pixelID
-  rescaleFactor <- (res(rasterTemplate)[1]/sim$fireSense_IgnitionFitted$fittingRes)^2
   dataForPredict <- na.omit(fireSense_IgnitionCovariates)
 
   if (!is.null(sim$fireSense_IgnitionFitted$rescales)) {
@@ -117,7 +116,7 @@ IgnitionPredictRun <- function(sim) {
   # Create outputs
 
   ## Ignite - accounting for spatial resolution of models
-  igDisAggFactor <- c(res(sim$fireSense_IgnitionPredicted)[1]) /c(res(sim$flammableRTM)[1])
+  igDisAggFactor <- sim$fireSense_IgnitionFitted$fittingRes/c(res(sim$flammableRTM)[1])
 
   igs <- as.data.table(sim$fireSense_IgnitionPredicted, cells = TRUE)
   igs[, ignited := rpois(n = length(ignitionProbs),
