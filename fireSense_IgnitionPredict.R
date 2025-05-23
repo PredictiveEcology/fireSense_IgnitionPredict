@@ -45,7 +45,7 @@ defineModule(sim, list(
     expectsInput("fireSense_IgnitionFitted", "fireSense_IgnitionFit",
                  desc = "An object of class `fireSense_IgnitionFit` created with the `fireSense_IgnitionFit` module.",
                  sourceURL = NA),
-    expectsInput("fireSense_IgnitionAndEscapeCovariates", c("data.table", "SpatRaser"),
+    expectsInput("fireSense_igAndEscapePred_Covariates", c("data.table", "SpatRaser"),
                  desc = paste("An object of class `SpatRaster` (named according to variables)",
                               "or `data.frame`/`data.table` with prediction variables.",
                               "If a `data.frame`/`data.table`, then a",
@@ -99,9 +99,9 @@ IgnitionPredictRun <- function(sim) {
     sim$fireSense_IgnitionFitted$lambdaRescaleFactor <- 1
   }
 
-  fireSense_IgnitionCovariates <- sim$fireSense_IgnitionAndEscapeCovariates
+  fireSense_IgnitionCovariates <- sim$fireSense_igAndEscapePred_Covariates
 
-  nonNaPixels <- sim$fireSense_IgnitionAndEscapeCovariates$pixelID
+  nonNaPixels <- sim$fireSense_igAndEscapePred_Covariates$pixelID
   dataForPredict <- na.omit(fireSense_IgnitionCovariates)
 
   if (!is.null(sim$fireSense_IgnitionFitted$rescales)) {
@@ -109,7 +109,7 @@ IgnitionPredictRun <- function(sim) {
                                              sim$fireSense_IgnitionFitted$rescales)
   }
 
-  sim$fireSense_IgnitionAndEscapeCovariates[, igProb := predictIgnition(model = sim$fireSense_IgnitionFitted$model,
+  sim$fireSense_igAndEscapePred_Covariates[, igProb := predictIgnition(model = sim$fireSense_IgnitionFitted$model,
                                                                         dataForPredict,
                                                                         rescaleFactor = 1,
                                                                         sim$fireSense_IgnitionFitted$lambdaRescaleFactor)]
@@ -118,9 +118,9 @@ IgnitionPredictRun <- function(sim) {
   ## Ignite - accounting for spatial resolution of models
   igDisAggFactor <- sim$fireSense_IgnitionFitted$fittingRes/c(res(sim$flammableRTM)[1])
 
-  igs <- as.data.table(sim$fireSense_IgnitionPredicted, cells = TRUE)
-  igs[, ignited := rpois(n = length(ignitionProbs),
-                         prob = ignitionProbs)]
+  igs <- copy(sim$fireSense_igAndEscapePred_Covariates)
+  igs[, ignited := rpois(n = length(igProb),
+                         lambda = igProb)]
   igRas <- rast(sim$fireSense_IgnitionPredicted, vals = igs$cells)
   igRas <- disagg(igRas, fact= igDisAggFactor)
   igRas[sim$flammableRTM[] != 1] <- NA
