@@ -2996,7 +2996,7 @@ border-radius: 0px;
 
 <h1 class="title toc-ignore">fireSense_IgnitionPredict Manual</h1>
 <h3 class="subtitle">v.0.2.0</h3>
-<h4 class="date">Last updated: 2025-05-23</h4>
+<h4 class="date">Last updated: 2025-05-29</h4>
 
 </div>
 
@@ -3200,7 +3200,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-optional. Interval between two runs of this module, expressed in units of simulation time. By default, 1 year.
+optional. Interval between two runs of this moduleexpressed in units of simulation time. By default, 1 year.
 </td>
 </tr>
 <tr>
@@ -3307,13 +3307,13 @@ desc
 <tbody>
 <tr>
 <td style="text-align:left;">
-fireSense_IgnitionProb
+fireSense_IgAndEscapeProbRas
 </td>
 <td style="text-align:left;">
 SpatRaster
 </td>
 <td style="text-align:left;">
-a raster layer of ignition probabilities
+a raster layer of the annual ignition and escape probabilities
 </td>
 </tr>
 <tr>
@@ -3324,7 +3324,7 @@ ignitionsAndEscapes
 data.table
 </td>
 <td style="text-align:left;">
-A data.table containing pixelID (referencing flammableRTM), ignition, and escape
+A data.table containing pixelID (referencing flammableRTM), ignitions, escapes, and their associated probabilities
 </td>
 </tr>
 </tbody>
