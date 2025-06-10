@@ -143,7 +143,14 @@ IgnitionPredictRun <- function(sim) {
   )]
   # TODO: this is 1 in all applications except Ceres' (which predate the new model)
   igCov[, igProb := igProb * sim$fireSense_IgnitionFitted$lambdaRescaleFactor]
-  igCov[, ignitions := rpois(
+
+  ignitionFamily <- params(sim)$fireSense_IgnitionFit$ignitionFamily[[1]] |> format()
+
+  possTypes <- data.table(family = c("poisson", "nbinom"), generator = c("rpois", "rnbinom"))
+  generator <- possTypes[family %in% ignitionFamily]$generator
+  generator <- eval(parse(text = generator))
+
+  igCov[, ignitions := generator(
     n = length(igProb),
     lambda = igProb
   )]
