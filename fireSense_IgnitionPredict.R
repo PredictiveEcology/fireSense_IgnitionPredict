@@ -129,7 +129,7 @@ IgnitionPredictRun <- function(sim) {
   igCov <- na.omit(igCov)
 
   if (!is.null(sim$fireSense_IgnitionFitted$rescales)) {
-    dataForPredict <- rescaleVarsByMagnitude(
+    igCov <- rescaleVarsByMagnitude(
       igCov,
       sim$fireSense_IgnitionFitted$rescales
     )
