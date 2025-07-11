@@ -128,55 +128,105 @@ IgnitionPredictRun <- function(sim) {
 
   igCov <- na.omit(igCov)
 
+  scaleData <- sim$fireSense_IgnitionFitted$scaleData
+  if (!is.null(scaleData)) {
+    vars <- unlist(scaleData$dimnames)
+    vars <- setdiff(vars, c("pixelID", "year"))
+    for (v in vars) {
+      set(igCov, NULL, v,
+          scaleAgain(igCov[[v]],
+                     scaleData$`scaled:center`[[v]],
+                     scaleData$`scaled:scale`[[v]]))
+    }
+  }
   if (!is.null(sim$fireSense_IgnitionFitted$rescales)) {
     igCov <- rescaleVarsByMagnitude(
       igCov,
       sim$fireSense_IgnitionFitted$rescales
     )
   }
-  # TODO: I think fireSenseUtils::predictIgnition is now redundant
-  # TODO: let a user pass a package:fun to prdict, like LandR.CS, else this?
-  igCov[, igProb := predict(sim$fireSense_IgnitionFitted$model,
-                            newdata = igCov,
-                            se.fit = FALSE,
-                            re.form = NA, type = "response"
-  )]
-  # TODO: this is 1 in all applications except Ceres' (which predate the new model)
-  igCov[, igProb := igProb * sim$fireSense_IgnitionFitted$lambdaRescaleFactor]
 
-  ignitionFamily <- params(sim)$fireSense_IgnitionFit$ignitionFamily[[1]] |> format()
+  # From here, it makes predictions from each KFold, then averages them to get the probabilities for
+  #   each cell; same for Escape, which is conditional on having ignited.
+  modsHere <- sim$fireSense_IgnitionFitted$modelList$model
+  modsOnly <- modsHere[grep("Fold", names(modsHere))]
+  if (!is.null(modsOnly)) {
+    predsIgnList <- Map(model = modsOnly, function(model) {
+      predict(model, newdata = igCov)
+    })
 
-  possTypes <- data.table(family = c("poisson", "nbinom"), generator = c("rpois", "rnbinom"))
-  generator <- possTypes[family %in% ignitionFamily]$generator
-  generator <- eval(parse(text = generator))
+    predsIgnsMat <- do.call(cbind, predsIgnList)# |> sort() |> unname()
+    predsIgns <- rowMeans(predsIgnsMat)
+    igns <- rpois(NROW(predsIgns), lambda = predsIgns) # can't use rtweedie because don't know the dispersion parameter
 
-  igCov[, ignitions := generator(
-    n = length(igProb),
-    lambda = igProb
-  )]
+    modsEscHere <- sim$fireSense_EscapeFitted$modelList$model
+    modsEscOnly <- modsEscHere[grep("Fold", names(modsEscHere))]
+    whHasIgns <- which(igns > 0)
+    predsEscList <- Map(model = modsEscOnly,
+                        function(model) {
+                          predsEsc <- predict(model, newdata = igCov[whHasIgns])
+                          pmax(pmin(1, predsEsc), 0) # the escape model is tweedie, so can go above 1, below 0 rarely
+                        })
+    predsEscsMat <- do.call(cbind, predsEscList)# |> sort() |> unname()
+    predsEscs <- rowMeans(predsEscsMat)
+    escs <- rbinom(NROW(predsEscs), size = igns[whHasIgns], prob = predsEscs)
 
-  # Escape
-  igCov[, escapeProb := predict(sim$fireSense_EscapeFitted$model,
-                                newdata = igCov,
-                                se.fit = FALSE,
-                                re.form = NA, type = "response"
-  )]
+    set(igCov, NULL, c("igProb", "ignitions"), list(predsIgns, igns))
+    set(igCov, whHasIgns, c("escapeProb", "escapes"), list(predsEscs, escs))
 
-  igCov[, escapes := rbinom(n = .N, size = ignitions, prob = escapeProb)]
+    igDisAggFactor <- ceiling(sim$fireSense_IgnitionFitted$modelList$fittingRes / c(res(sim$flammableRTM)[1]))
+  } else {
+    stop("Not tested anymore")
+    # TODO: I think fireSenseUtils::predictIgnition is now redundant
+    # TODO: let a user pass a package:fun to prdict, like LandR.CS, else this?
+    igCov[, igProb := predict(sim$fireSense_IgnitionFitted$model,
+                              newdata = igCov,
+                              se.fit = FALSE,
+                              re.form = NA, type = "response"
+    )]
+    # TODO: this is 1 in all applications except Ceres' (which predate the new model)
+    igCov[, igProb := igProb * sim$fireSense_IgnitionFitted$lambdaRescaleFactor]
 
+    ignitionFamily <- params(sim)$fireSense_IgnitionFit$ignitionFamily[[1]] |> format()
+
+    possTypes <- data.table(family = c("poisson", "nbinom"), generator = c("rpois", "rnbinom"))
+    generator <- possTypes[family %in% ignitionFamily]$generator
+    generator <- eval(parse(text = generator))
+
+    igCov[, ignitions := generator(
+      n = length(igProb),
+      lambda = igProb
+    )]
+
+    # Escape
+    igCov[, escapeProb := predict(sim$fireSense_EscapeFitted$model,
+                                  newdata = igCov,
+                                  se.fit = FALSE,
+                                  re.form = NA, type = "response"
+    )]
+
+    igCov[, escapes := rbinom(n = .N, size = ignitions, prob = escapeProb)]
+
+    igDisAggFactor <- ceiling(sim$fireSense_IgnitionFitted$fittingRes / c(res(sim$flammableRTM)[1]))
+  }
   # Ignite - accounting for spatial resolution of models
-  igDisAggFactor <- ceiling(sim$fireSense_IgnitionFitted$fittingRes / c(res(sim$flammableRTM)[1]))
 
   # disaggregate the coarse raster to size of flammableRTM
   # draw ignitions/escapes from smaller pixel size
   igRas <- rast(sim$ignitionFitRTM)
   igRas[igCov$pixelID] <- igCov$pixelID
-  igRas <- disagg(igRas, fact = igDisAggFactor)
+
+  # can't use disagg because it may not be round pixels
+  # igRas <- disagg(igRas, fact = igDisAggFactor)
+  igRas <- postProcess(igRas, to = sim$flammableRTM, method = "near")
   igRas[sim$flammableRTM[] != 1] <- NA
-  igRas <- as.data.table(igRas, cells = TRUE)
-  setnames(igRas, new = c("pixelID", "chunkyPixels"))
-  # igs <- igCov[igRas, on = c("pixelID" = "chunkyPixels")]
-  igs <- igRas[igCov, on = c("chunkyPixels" = "pixelID")]
+
+  igRasDT <- as.data.table(igRas, cells = TRUE)
+  setnames(igRasDT, new = c("pixelID", "chunkyPixels"))
+  # igs <- igCov[igRasDT, on = c("pixelID" = "chunkyPixels")]
+  # nomatch = NULL --> removes pixels that aren't in igCov, which are non flammable
+  igs <- igRasDT[igCov, on = c("chunkyPixels" = "pixelID"), nomatch = NULL]
+  # igs <- igRasDT[igCov, on = c("chunkyPixels" = "pixelID")]
   # randomly sample
   # use unique because of multiple pixelID per chunkyPixel
   drawTable <- unique(igs[ignitions > 0, .(chunkyPixels, ignitions, escapes)])
@@ -185,7 +235,8 @@ IgnitionPredictRun <- function(sim) {
                           sampledChunk <- draw[chunkyPixels == n]
                           pixelID_pop <- igs[chunkyPixels == sampledChunk$chunkyPixels]
                           drawn <- sample(pixelID_pop$pixelID, size = sampledChunk$ignitions)
-                          igPixels <- ig[pixelID == drawn, .(pixelID, igProb, ignitions, escapeProb, escapes)]
+                          igPixels <- try(ig[pixelID %in% drawn, .(pixelID, igProb, ignitions, escapeProb, escapes)])
+                          if (is(igPixels, "try-error")) browser()
                           return(igPixels)
                         }
   ) |>
@@ -223,4 +274,9 @@ IgnitionPredictSave <- function(sim) {
   # message(currentModule(sim), ": using dataPath '", dPath, "'.")
 
   return(invisible(sim))
+}
+
+
+scaleAgain <- function(v, center, scale) {
+  (v - center)/ scale
 }
