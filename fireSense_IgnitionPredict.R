@@ -23,58 +23,58 @@ defineModule(sim, list(
   loadOrder = list(after = "fireSense_dataPrepPredict"),
   parameters = bindrows(
     defineParameter("ignitionFit_Predict_Package", "character", "glmmTMB", NA, NA,
-      desc = paste(
-        "The package used to fit the ignitionFit model.",
-        "It wil be loaded using Require."
-      )
+                    desc = paste(
+                      "The package used to fit the ignitionFit model.",
+                      "It wil be loaded using Require."
+                    )
     ),
     defineParameter(".runInitialTime", "numeric", start(sim), NA, NA,
-      desc = "when to start this module? By default, the start
+                    desc = "when to start this module? By default, the start
                             time of the simulation."
     ),
     defineParameter(".runInterval", "numeric", 1, NA, NA,
-      desc = paste("optional. Interval between two runs of this module"),
-      ("expressed in units of simulation time. By default, 1 year.")
+                    desc = paste("optional. Interval between two runs of this module"),
+                    ("expressed in units of simulation time. By default, 1 year.")
     ),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA,
-      desc = "optional. When to start saving output to a file."
+                    desc = "optional. When to start saving output to a file."
     ),
     defineParameter(".saveInterval", "numeric", NA, NA, NA,
-      desc = "optional. Interval between save events."
+                    desc = "optional. Interval between save events."
     ),
     defineParameter(".useCache", "logical", FALSE, NA, NA,
-      desc = paste(
-        "Should this entire module be run with caching activated?",
-        "This is generally intended for data-type modules,",
-        "where stochasticity and time are not relevant"
-      )
+                    desc = paste(
+                      "Should this entire module be run with caching activated?",
+                      "This is generally intended for data-type modules,",
+                      "where stochasticity and time are not relevant"
+                    )
     )
   ),
   inputObjects = bindrows(
     expectsInput("fireSense_EscapeFitted", "fireSense_EscapeFit",
-      desc = "An object of class `fireSense_EscapeFit` created with the `fireSense_IgnitionFit` module.",
-      sourceURL = NA
+                 desc = "An object of class `fireSense_EscapeFit` created with the `fireSense_IgnitionFit` module.",
+                 sourceURL = NA
     ),
     expectsInput("fireSense_IgnitionFitted", "fireSense_IgnitionFit",
-      desc = "An object of class `fireSense_IgnitionFit` created with the `fireSense_IgnitionFit` module.",
-      sourceURL = NA
+                 desc = "An object of class `fireSense_IgnitionFit` created with the `fireSense_IgnitionFit` module.",
+                 sourceURL = NA
     ),
     expectsInput("fireSense_igAndEscapePred_Covariates", c("data.table", "SpatRaser"),
-      desc = paste(
-        "An object of class `SpatRaster` (named according to variables)",
-        "or `data.frame`/`data.table` with prediction variables.",
-        "If a `data.frame`/`data.table`, then a",
-        "column named 'pixelID' needs to be supplied"
-      )
+                 desc = paste(
+                   "An object of class `SpatRaster` (named according to variables)",
+                   "or `data.frame`/`data.table` with prediction variables.",
+                   "If a `data.frame`/`data.table`, then a",
+                   "column named 'pixelID' needs to be supplied"
+                 )
     ),
     expectsInput("flammableRTM", "SpatRaster",
-      sourceURL = NA,
-      desc = "RTM without ice/rocks/urban/water. Flammable map with 0 and 1."
+                 sourceURL = NA,
+                 desc = "RTM without ice/rocks/urban/water. Flammable map with 0 and 1."
     ),
   ),
   outputObjects = bindrows(
     createsOutput("fireSense_IgAndEscapeProbRas", "SpatRaster",
-      desc = "a raster layer of the annual ignition and escape probabilities"
+                  desc = "a raster layer of the annual ignition and escape probabilities"
     ),
     createsOutput(
       "ignitionsAndEscapes", "data.table",
@@ -88,32 +88,32 @@ doEvent.fireSense_IgnitionPredict <- function(sim, eventTime, eventType, debug =
   moduleName <- currentModule(sim)
 
   switch(eventType,
-    init = {
-      Require(P(sim)$ignitionFit_Predict_Package)
+         init = {
+           Require(P(sim)$ignitionFit_Predict_Package)
 
-      sim <- scheduleEvent(sim, eventTime = P(sim)$.runInitialTime, moduleName, "run")
+           sim <- scheduleEvent(sim, eventTime = P(sim)$.runInitialTime, moduleName, "run")
 
-      if (!is.na(P(sim)$.saveInitialTime)) {
-        sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, moduleName, "save", .last())
-      }
-    },
-    run = {
-      sim <- IgnitionPredictRun(sim)
-      if (!is.na(P(sim)$.runInterval)) {
-        sim <- scheduleEvent(sim, time(sim) + P(sim)$.runInterval, moduleName, "run")
-      }
-    },
-    save = {
-      sim <- IgnitionPredictSave(sim)
+           if (!is.na(P(sim)$.saveInitialTime)) {
+             sim <- scheduleEvent(sim, P(sim)$.saveInitialTime, moduleName, "save", .last())
+           }
+         },
+         run = {
+           sim <- IgnitionPredictRun(sim)
+           if (!is.na(P(sim)$.runInterval)) {
+             sim <- scheduleEvent(sim, time(sim) + P(sim)$.runInterval, moduleName, "run")
+           }
+         },
+         save = {
+           sim <- IgnitionPredictSave(sim)
 
-      if (!is.na(P(sim)$.saveInterval)) {
-        sim <- scheduleEvent(sim, time(sim) + P(sim)$.saveInterval, moduleName, "save", .last())
-      }
-    },
-    warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
-      "' in module '", current(sim)[1, "moduleName", with = FALSE], "'",
-      sep = ""
-    ))
+           if (!is.na(P(sim)$.saveInterval)) {
+             sim <- scheduleEvent(sim, time(sim) + P(sim)$.saveInterval, moduleName, "save", .last())
+           }
+         },
+         warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
+                       "' in module '", current(sim)[1, "moduleName", with = FALSE], "'",
+                       sep = ""
+         ))
   )
   return(invisible(sim))
 }
