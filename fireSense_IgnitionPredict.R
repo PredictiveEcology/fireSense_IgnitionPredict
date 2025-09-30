@@ -249,6 +249,7 @@ IgnitionPredictRun <- function(sim) {
   escapeProbRas[igCov$pixelID] <- igCov$escapeProb
   sim$fireSense_IgAndEscapeProbRas <- c(igProbRas, escapeProbRas)
   names(sim$fireSense_IgAndEscapeProbRas) <- c("ignitionProb", "escapeProb")
+  Plots(igProbRas, types = Par$.plots, filename = paste0("IgnitionProbability_yr", time(sim)))
 
   randomOrder <- sample(1:nrow(pixelID_igs))
   sim$ignitionsAndEscapes <- pixelID_igs[randomOrder,] #Randomize order
