@@ -22,12 +22,13 @@ defineModule(sim, list(
   ),
   loadOrder = list(after = "fireSense_dataPrepPredict"),
   parameters = bindrows(
-    defineParameter("ignitionFit_Predict_Package", "character", "glmmTMB", NA, NA,
-                    desc = paste(
-                      "The package used to fit the ignitionFit model.",
-                      "It wil be loaded using Require."
-                    )
-    ),
+    # Eliot removed this Jan 2026; why not put this in the `reqdPkgs`? And also, it is not used anymore.
+    # defineParameter("ignitionFit_Predict_Package", "character", "glmmTMB", NA, NA,
+    #                 desc = paste(
+    #                   "The package used to fit the ignitionFit model.",
+    #                   "It wil be loaded using Require."
+    #                 )
+    # ),
     defineParameter(".runInitialTime", "numeric", start(sim), NA, NA,
                     desc = "when to start this module? By default, the start
                             time of the simulation."
@@ -89,7 +90,7 @@ doEvent.fireSense_IgnitionPredict <- function(sim, eventTime, eventType, debug =
 
   switch(eventType,
          init = {
-           Require(P(sim)$ignitionFit_Predict_Package)
+           # Require(P(sim)$ignitionFit_Predict_Package)
 
            sim <- scheduleEvent(sim, eventTime = P(sim)$.runInitialTime, moduleName, "run")
 
