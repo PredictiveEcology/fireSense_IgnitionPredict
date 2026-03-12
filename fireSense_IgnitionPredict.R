@@ -18,7 +18,7 @@ defineModule(sim, list(
   documentation = list("README.txt", "fireSense_IgnitionPredict.Rmd"),
   reqdPkgs = list(
     "magrittr", "terra",
-    "PredictiveEcology/fireSenseUtils@development (>=0.0.5.9090)"
+    "PredictiveEcology/fireSenseUtils@development (>=0.1.0)"
   ),
   loadOrder = list(after = "fireSense_dataPrepPredict"),
   parameters = bindrows(
