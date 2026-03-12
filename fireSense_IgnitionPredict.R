@@ -29,6 +29,13 @@ defineModule(sim, list(
     #                   "It wil be loaded using Require."
     #                 )
     # ),
+    defineParameter("modelAlgorithm", "character", "xgboost", NA, NA,
+                    "Can be `xgboost`, `glmmtmb`, `glm.nb`, `glmmadaptive`, `glm`; only `xgboost` is supported currently"),
+    defineParameter("rescaleVars", "logical", default = TRUE,
+                    desc = paste("Attempt to rescale variables? If `rescalers` is defined,",
+                                 "use it to rescale variables as `var / rescalers['var']`. ",
+                                 "Otherwise, `scale()` will be used to rescale variables to `[0,1]`,",
+                                 "if they are not already within this range.")),
     defineParameter(".runInitialTime", "numeric", start(sim), NA, NA,
                     desc = "when to start this module? By default, the start
                             time of the simulation."
@@ -128,24 +135,40 @@ IgnitionPredictRun <- function(sim) {
   igCov <- copy(sim$fireSense_igAndEscapePred_Covariates)
 
   igCov <- na.omit(igCov)
+  
+  modelAlgorithm <- paramCheckOtherMods(sim, "modelAlgorithm")
+  rescaleVars <- paramCheckOtherMods(sim, "rescaleVars")
+  data <- prepareCovariatesOuter(igCov,
+                                 algorithm = modelAlgorithm, 
+                                 rescaleVars = rescaleVars)
+  pixelId <- igCov$pixelID
+  igCov <- data$covariates
+  set(igCov, NULL, "pixelID", pixelId)
+  
 
-  scaleData <- sim$fireSense_IgnitionFitted$scaleData
-  if (!is.null(scaleData)) {
-    vars <- unlist(scaleData$dimnames)
-    vars <- setdiff(vars, c("pixelID", "year"))
-    for (v in vars) {
-      set(igCov, NULL, v,
-          scaleAgain(igCov[[v]],
-                     scaleData$`scaled:center`[[v]],
-                     scaleData$`scaled:scale`[[v]]))
-    }
-  }
-  if (!is.null(sim$fireSense_IgnitionFitted$rescales)) {
-    igCov <- rescaleVarsByMagnitude(
-      igCov,
-      sim$fireSense_IgnitionFitted$rescales
-    )
-  }
+  # scaleData <- sim$fireSense_IgnitionFitted$scaleData
+  # if (!is.null(scaleData)) {
+  #   vars <- unlist(scaleData$dimnames)
+  #   vars <- setdiff(vars, c("pixelID", "year"))
+  #   
+  #   
+  #   browser() 
+  #   # these rescalings are possibly because the rescales are on the raw species, 
+  #   # but the fuel classes may have been merged
+  #   intersect(vars, names(igCov))
+  #   for (v in vars) {
+  #     set(igCov, NULL, v,
+  #         scaleAgain(igCov[[v]],
+  #                    scaleData$`scaled:center`[[v]],
+  #                    scaleData$`scaled:scale`[[v]]))
+  #   }
+  # }
+  # if (!is.null(sim$fireSense_IgnitionFitted$rescales)) {
+  #   igCov <- rescaleVarsByMagnitude(
+  #     igCov,
+  #     sim$fireSense_IgnitionFitted$rescales
+  #   )
+  # }
 
   # From here, it makes predictions from each KFold, then averages them to get the probabilities for
   #   each cell; same for Escape, which is conditional on having ignited.
@@ -163,6 +186,7 @@ IgnitionPredictRun <- function(sim) {
     modsEscHere <- sim$fireSense_EscapeFitted$modelList$model
     modsEscOnly <- modsEscHere[grep("Fold", names(modsEscHere))]
     whHasIgns <- which(igns > 0)
+    
     predsEscList <- Map(model = modsEscOnly,
                         function(model) {
                           predsEsc <- predict(model, newdata = igCov[whHasIgns])
