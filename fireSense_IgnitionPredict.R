@@ -140,7 +140,7 @@ IgnitionPredictRun <- function(sim) {
   rescaleVars <- paramCheckOtherMods(sim, "rescaleVars")
   data <- prepareCovariatesOuter(igCov,
                                  algorithm = modelAlgorithm, 
-                                 rescaleVars = rescaleVars)
+                                 rescaleVars = rescaleVars, useCache = FALSE)
   pixelId <- igCov$pixelID
   igCov <- data$covariates
   set(igCov, NULL, "pixelID", pixelId)
