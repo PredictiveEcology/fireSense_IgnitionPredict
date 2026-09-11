@@ -1,1 +1,9 @@
 .Rproj.user
+.Rhistory
+.Rdata
+.httr-oauth
+.DS_Store
+.quarto
+
+fireSense_IgnitionPredict_cache/
+fireSense_IgnitionPredict2.Rmd
