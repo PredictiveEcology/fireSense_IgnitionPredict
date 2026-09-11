@@ -67,12 +67,10 @@ defineModule(sim, list(
                  desc = "An object of class `fireSense_IgnitionFit` created with the `fireSense_IgnitionFit` module.",
                  sourceURL = NA
     ),
-    expectsInput("fireSense_igAndEscapePred_Covariates", c("data.table", "SpatRaser"),
+    expectsInput("fireSense_igAndEscapePred_Covariates", "data.table",
                  desc = paste(
-                   "An object of class `SpatRaster` (named according to variables)",
-                   "or `data.frame`/`data.table` with prediction variables.",
-                   "If a `data.frame`/`data.table`, then a",
-                   "column named 'pixelID' needs to be supplied"
+                   "A `data.table` with prediction variables and a",
+                   "column named 'pixelID'"
                  )
     ),
     expectsInput("flammableRTM", "SpatRaster",
