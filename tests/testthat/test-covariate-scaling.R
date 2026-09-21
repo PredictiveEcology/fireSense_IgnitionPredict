@@ -21,7 +21,9 @@ test_that("pixelID reaches the models as the cell number, never rescaled", {
 test_that("covariates are standardised with the FIT's centre and scale", {
   skip(paste("known defect: IgnitionPredictRun() standardises each year's covariates with that",
              "year's own mean and sd (fireSenseUtils::prepareCovariatesOuter -> scale()),",
-             "not with fireSense_IgnitionFitted$scaleData"))
+             "not with fireSense_IgnitionFitted$scaleData.",
+             "Fixed, with its own tests, in",
+             "https://github.com/PredictiveEcology/fireSense_IgnitionPredict/pull/21"))
   ## The fit standardised MDC with centre 100 and scale 50, and stored that in `scaleData`
   ## (as fireSense_IgnitionFit does). A cool year and a year that is 100 MDC units hotter
   ## everywhere must therefore look different to the model:

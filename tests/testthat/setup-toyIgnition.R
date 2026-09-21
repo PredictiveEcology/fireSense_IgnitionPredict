@@ -64,19 +64,29 @@ toyIgCovariates <- function(MDC = c(100, 120, 140, 160), year = 2001) {
                          year = year)
 }
 
+## The centre and scale the fit standardised its covariates with, as fireSense_IgnitionFit
+## stores them (the attributes of a scale()d matrix; `pixelID` and `year` are in there too).
+toyScaleData <- function(center = c(pixelID = 2.5, MDC = 100, youngAge = 0.5, year = 2000),
+                         scale = c(pixelID = 1.3, MDC = 50, youngAge = 0.5, year = 10)) {
+  list(`scaled:center` = center, `scaled:scale` = scale)
+}
+
 ## `ignFuns` and `escFuns` are lists of functions of newdata, one per fold
 toyIgInputs <- function(ignFuns, escFuns, covs = toyIgCovariates(),
                         foldNames = paste0("Fold", seq_along(ignFuns)),
-                        flammableRTM = toyFlammable()) {
+                        flammableRTM = toyFlammable(),
+                        ignScaleData = toyScaleData(), escScaleData = toyScaleData()) {
   ign <- Map(toyFold, ignFuns, paste0("ign", seq_along(ignFuns)))
   esc <- Map(toyFold, escFuns, paste0("esc", seq_along(escFuns)))
   names(ign) <- foldNames
   names(esc) <- paste0("Fold", seq_along(escFuns))
   list(
     fireSense_IgnitionFitted = structure(
-      list(modelList = list(model = ign, fittingRes = 2)), class = "fireSense_IgnitionFit"),
+      list(modelList = list(model = ign, fittingRes = 2), scaleData = ignScaleData),
+      class = "fireSense_IgnitionFit"),
     fireSense_EscapeFitted = structure(
-      list(modelList = list(model = esc)), class = "fireSense_EscapeFit"),
+      list(modelList = list(model = esc), scaleData = escScaleData),
+      class = "fireSense_EscapeFit"),
     fireSense_igAndEscapePred_Covariates = covs,
     flammableRTM = flammableRTM,
     ignitionFitRTM = toyCoarse()
