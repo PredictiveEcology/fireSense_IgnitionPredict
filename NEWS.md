@@ -1,3 +1,7 @@
+# fireSense_IgnitionPredict (development version)
+
+- The `save` event now does nothing and says so. It used to fail, because it wrote `sim$fireSense_IgnitionPredicted`, which the module no longer creates. `IgnitionPredictSave()` is removed.
+
 # fireSense_IgnitionPredict 1.0.0
 
 First release from `development` since `master` was last updated (2021-03-11). Full history: https://github.com/PredictiveEcology/fireSense_IgnitionPredict/compare/5a242fa...v1.0.0

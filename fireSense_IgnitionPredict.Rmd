@@ -81,7 +81,7 @@ knitr::kable(df_params, caption = "List of (ref:fireSense-IgnitionPredict) param
 
 - `init`: schedules `run` at `.runInitialTime`, and `save` at `.saveInitialTime` if that is not `NA`.
 - `run`: makes the predictions and draws described above; repeats every `.runInterval`.
-- `save`: writes a raster to `outputPath(sim)`; repeats every `.saveInterval`. It writes `sim$fireSense_IgnitionPredicted`, which the module no longer creates, so it currently fails.
+- `save`: does nothing but say so. To save the predicted raster, name `fireSense_IgAndEscapeProbRas` in `outputs(sim)`.
 
 ### Plotting
 

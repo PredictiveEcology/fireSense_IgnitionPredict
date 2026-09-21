@@ -35,11 +35,10 @@ defineModule(sim, list(
                     desc = "Interval between predictions, in years. `NA` predicts once."
     ),
     defineParameter(".saveInitialTime", "numeric", NA, NA, NA,
-                    desc = "Time of the first `save` event. `NA` means never."
+                    desc = "Time of the `save` event, which does nothing. `NA` means never."
     ),
     defineParameter(".saveInterval", "numeric", NA, NA, NA,
-                    desc = paste("Interval between `save` events.",
-                                 "If not `NA`, the ignition probability raster is also plotted each year.")
+                    desc = "If not `NA`, the ignition probability raster is plotted each year."
     ),
     defineParameter(".useCache", "logical", FALSE, NA, NA,
                     desc = paste(
@@ -85,7 +84,7 @@ defineModule(sim, list(
 
 #' Event dispatcher
 #'
-#' Events: `init`, `run` (predict, repeated every `.runInterval`), `save`.
+#' Events: `init`, `run` (predict, repeated every `.runInterval`), `save` (does nothing).
 #'
 #' @param sim A `simList`.
 #' @param eventTime Time of the event.
@@ -111,11 +110,7 @@ doEvent.fireSense_IgnitionPredict <- function(sim, eventTime, eventType, debug =
            }
          },
          save = {
-           sim <- IgnitionPredictSave(sim)
-
-           if (!is.na(P(sim)$.saveInterval)) {
-             sim <- scheduleEvent(sim, time(sim) + P(sim)$.saveInterval, moduleName, "save", .last())
-           }
+           message("fireSense_IgnitionPredict: the `save` event does nothing.")
          },
          warning(paste("Undefined event type: '", current(sim)[1, "eventType", with = FALSE],
                        "' in module '", current(sim)[1, "moduleName", with = FALSE], "'",
@@ -135,11 +130,6 @@ doEvent.fireSense_IgnitionPredict <- function(sim, eventTime, eventType, debug =
 #'
 #' @return The `simList`, invisibly, with `fireSense_IgAndEscapeProbRas` and `ignitionsAndEscapes`.
 IgnitionPredictRun <- function(sim) {
-  ## checks
-  if (is.null(sim$fireSense_IgnitionFitted$lambdaRescaleFactor)) {
-    sim$fireSense_IgnitionFitted$lambdaRescaleFactor <- 1
-  }
-
   igCov <- copy(sim$fireSense_igAndEscapePred_Covariates)
 
   igCov <- na.omit(igCov)
@@ -182,8 +172,6 @@ IgnitionPredictRun <- function(sim) {
 
     set(igCov, NULL, c("igProb", "ignitions"), list(predsIgns, igns))
     set(igCov, whHasIgns, c("escapeProb", "escapes"), list(predsEscs, escs))
-
-    igDisAggFactor <- ceiling(sim$fireSense_IgnitionFitted$modelList$fittingRes / c(res(sim$flammableRTM)[1]))
   } else {
     stop("Not tested anymore")
   }
@@ -230,23 +218,6 @@ IgnitionPredictRun <- function(sim) {
   }
   randomOrder <- sample(1:nrow(pixelID_igs))
   sim$ignitionsAndEscapes <- pixelID_igs[randomOrder,] #Randomize order
-
-  return(invisible(sim))
-}
-
-#' Write the predicted raster to `outputPath`
-#'
-#' @param sim A `simList`.
-#'
-#' @return The `simList`, invisibly.
-IgnitionPredictSave <- function(sim) {
-  timeUnit <- timeunit(sim)
-  currentTime <- time(sim, timeUnit)
-
-  writeRaster(
-    sim$fireSense_IgnitionPredicted,
-    filename = file.path(paths(sim)$out, paste0("fireSense_IgnitionPredicted_", timeUnit, currentTime, ".tif"))
-  )
 
   return(invisible(sim))
 }

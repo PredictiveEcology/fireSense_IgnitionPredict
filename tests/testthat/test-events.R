@@ -27,12 +27,28 @@ test_that("no save event by default; .saveInitialTime schedules one, last in its
   sim <- toyIgRun(inputsNoIgnition(), times = list(start = 2001, end = 2002))
   expect_identical(nrow(evOf(SpaDES.core::completed(sim), "save")), 0L)
   expect_identical(nrow(evOf(SpaDES.core::events(sim), "save")), 0L)
-  ## scheduled beyond end(sim) so that the (broken) save event itself never runs
   sim <- toyIgRun(inputsNoIgnition(), params = list(.saveInitialTime = 2010),
                   times = list(start = 2001, end = 2001))
   sv <- evOf(SpaDES.core::events(sim), "save")
   expect_equal(sv$eventTime, 2010)
   expect_equal(sv$eventPriority, SpaDES.core::.last())
+})
+
+test_that("the save event says it does nothing, and changes nothing", {
+  ins <- toyIgInputs(list(byPixel(c(0, 3, 0, 2))), list(constant(0.5)))
+  without <- toyIgRun(ins, times = list(start = 2001, end = 2002))
+  expect_message(
+    with <- toyIgRun(ins, params = list(.saveInitialTime = 2001, .saveInterval = 1),
+                     times = list(start = 2001, end = 2002)),
+    "`save` event does nothing")
+  ## it ran once and did not reschedule itself
+  expect_equal(evOf(SpaDES.core::completed(with), "save")$eventTime, 2001)
+  expect_identical(nrow(evOf(SpaDES.core::events(with), "save")), 0L)
+  expect_identical(sort(ls(with)), sort(ls(without)))
+  expect_identical(igTable(with), igTable(without))
+  expect_identical(probVals(with), probVals(without))
+  expect_identical(with$fireSense_IgnitionFitted, without$fireSense_IgnitionFitted)
+  expect_length(list.files(SpaDES.core::outputPath(with), recursive = TRUE), 0L)
 })
 
 test_that("nothing is predicted before the first run event", {
