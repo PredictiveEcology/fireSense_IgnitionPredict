@@ -37,10 +37,19 @@ Eliot McIntire <eliot.mcintire@nrcan-rncan.gc.ca> [aut, cre], Ian Eddy <ian.eddy
 
 ### Module summary
 
-Predicts fire frequency or rates of fire counts using a model fitted with the `fireSense_IgnitionFit` module.
-Use them to feed the ignition component of a landscape fire model (e.g fireSense [@Marchal:2017a; @Marchal:2017b; @Marchal:2019]).
+Each year, predicts ignitions and escapes from the models fitted by *fireSense_IgnitionFit* and *fireSense_EscapeFit*, for the ignition component of fireSense [@Marchal:2017a; @Marchal:2017b; @Marchal:2019].
+
+1. The covariates in `fireSense_igAndEscapePred_Covariates` are rescaled with `fireSenseUtils::prepareCovariatesOuter()`, the function used for fitting (`rescaleVars`, `modelAlgorithm`).
+2. Expected ignitions per coarse pixel are the mean of the predictions of the per-fold ignition models; the number of ignitions is drawn from a Poisson.
+3. For coarse pixels with ignitions, the escape probability is the mean of the per-fold escape models, clamped to [0, 1]; escapes are drawn from a binomial with size = ignitions.
+4. Each ignition is placed in a randomly chosen flammable pixel of `flammableRTM` inside its coarse pixel.
+
+Only `xgboost` models are supported.
 
 ### Module inputs and parameters
+
+`ignitionFitRTM` (the coarse raster used for fitting, from *fireSense_dataPrepFit*) is also read from the `simList`, though it is not declared as an input.
+`modelAlgorithm` and `rescaleVars` must have the same value in every module that defines them.
 
 Table \@ref(tab:moduleInputs-fireSense-IgnitionPredict) shows the full list of module inputs.
 
@@ -58,25 +67,25 @@ Table \@ref(tab:moduleInputs-fireSense-IgnitionPredict) shows the full list of m
   <tr>
    <td style="text-align:left;"> fireSense_EscapeFitted </td>
    <td style="text-align:left;"> fireSense_EscapeFit </td>
-   <td style="text-align:left;"> An object of class `fireSense_EscapeFit` created with the `fireSense_IgnitionFit` module. </td>
+   <td style="text-align:left;"> Fitted escape models (`$modelList$model`, one per fold), from `fireSense_EscapeFit`. </td>
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
    <td style="text-align:left;"> fireSense_IgnitionFitted </td>
    <td style="text-align:left;"> fireSense_IgnitionFit </td>
-   <td style="text-align:left;"> An object of class `fireSense_IgnitionFit` created with the `fireSense_IgnitionFit` module. </td>
+   <td style="text-align:left;"> Fitted ignition models (`$modelList$model`, one per fold) and `$modelList$fittingRes`, from `fireSense_IgnitionFit`. </td>
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
    <td style="text-align:left;"> fireSense_igAndEscapePred_Covariates </td>
    <td style="text-align:left;"> data.table </td>
-   <td style="text-align:left;"> A `data.table` with prediction variables and a column named 'pixelID' </td>
+   <td style="text-align:left;"> This year's covariates, from `fireSense_dataPrepPredict`. `pixelID` is the cell index of `ignitionFitRTM`. </td>
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
    <td style="text-align:left;"> flammableRTM </td>
    <td style="text-align:left;"> SpatRaster </td>
-   <td style="text-align:left;"> RTM without ice/rocks/urban/water. Flammable map with 0 and 1. </td>
+   <td style="text-align:left;"> Binary raster, 1 where the pixel is flammable. </td>
    <td style="text-align:left;"> NA </td>
   </tr>
 </tbody>
@@ -104,7 +113,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-Ignit
    <td style="text-align:left;"> xgboost </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Can be `xgboost`, `glmmtmb`, `glm.nb`, `glmmadaptive`, `glm`; only `xgboost` is supported currently </td>
+   <td style="text-align:left;"> Algorithm used to fit the models; only `xgboost` is supported. Must agree with the value in the other fireSense modules. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> rescaleVars </td>
@@ -112,7 +121,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-Ignit
    <td style="text-align:left;"> TRUE </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Attempt to rescale variables? If `rescalers` is defined, use it to rescale variables as `var / rescalers['var']`. Otherwise, `scale()` will be used to rescale variables to `[0,1]`, if they are not already within this range. </td>
+   <td style="text-align:left;"> Rescale the covariates before predicting? With `xgboost` they are standardized with `scale()`. Must agree with the value in the other fireSense modules. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .runInitialTime </td>
@@ -120,7 +129,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-Ignit
    <td style="text-align:left;"> 0 </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> when to start this module? By default, the start time of the simulation. </td>
+   <td style="text-align:left;"> Time of the first prediction. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .runInterval </td>
@@ -128,7 +137,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-Ignit
    <td style="text-align:left;"> 1 </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> optional. Interval between two runs of this moduleexpressed in units of simulation time. By default, 1 year. </td>
+   <td style="text-align:left;"> Interval between predictions, in years. `NA` predicts once. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .saveInitialTime </td>
@@ -136,7 +145,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-Ignit
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> optional. When to start saving output to a file. </td>
+   <td style="text-align:left;"> Time of the `save` event, which does nothing. `NA` means never. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .saveInterval </td>
@@ -144,7 +153,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-Ignit
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> optional. Interval between save events. </td>
+   <td style="text-align:left;"> If not `NA`, the ignition probability raster is plotted each year. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .useCache </td>
@@ -158,17 +167,14 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-Ignit
 </table>
 
 ### Events
-<!-- TODO -->
-- Module initialization;
-- Make predictions;
+
+- `init`: schedules `run` at `.runInitialTime`, and `save` at `.saveInitialTime` if that is not `NA`.
+- `run`: makes the predictions and draws described above; repeats every `.runInterval`.
+- `save`: does nothing but say so. To save the predicted raster, name `fireSense_IgAndEscapeProbRas` in `outputs(sim)`.
 
 ### Plotting
-<!-- TODO -->
-Write what is plotted.
 
-### Saving
-<!-- TODO -->
-Write what is saved.
+If `.saveInterval` is not `NA`, the ignition probability raster is plotted each year with `Plots()`.
 
 ### Module outputs
 
@@ -187,20 +193,20 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-Ignit
   <tr>
    <td style="text-align:left;"> fireSense_IgAndEscapeProbRas </td>
    <td style="text-align:left;"> SpatRaster </td>
-   <td style="text-align:left;"> a raster layer of the annual ignition and escape probabilities </td>
+   <td style="text-align:left;"> Two layers, `ignitionProb` (expected ignitions per pixel) and `escapeProb`, at the resolution of `ignitionFitRTM`. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> ignitionsAndEscapes </td>
    <td style="text-align:left;"> data.table </td>
-   <td style="text-align:left;"> A data.table containing pixelID (referencing flammableRTM), ignitions, escapes, and their associated probabilities </td>
+   <td style="text-align:left;"> One row per ignited pixel, in random order: `pixelID` (cell index of `flammableRTM`), and `igProb`, `ignitions`, `escapeProb`, `escapes` of the coarse pixel it was drawn from. </td>
   </tr>
 </tbody>
 </table>
 
 ### Links to other modules
 
-<!-- TODO: add links to other fireSense modules -->
-Predictions made with this module can be used to feed the ignition component of a landscape fire model (e.g fireSense).
+Runs after *fireSense_dataPrepPredict*, which supplies the covariates. `ignitionsAndEscapes` is used by *fireSense* to start fires.
+It is normally run as part of the [fireSense](https://github.com/PredictiveEcology/fireSense) module group.
 
 ### Getting help
 

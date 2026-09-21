@@ -3015,11 +3015,19 @@ border-radius: 0px;
 <h2>Module Overview</h2>
 <div id="module-summary" class="section level3">
 <h3>Module summary</h3>
-<p>Predicts fire frequency or rates of fire counts using a model fitted with the <code>fireSense_IgnitionFit</code> module.
-Use them to feed the ignition component of a landscape fire model (e.g fireSense <span class="citation">(<a href="#ref-Marchal:2017a">Marchal, Steve G. Cumming, et al. 2017b</a>; <a href="#ref-Marchal:2017b">Marchal, Steve G. Cumming, et al. 2017a</a>; <a href="#ref-Marchal:2019">Marchal et al. 2019</a>)</span>).</p>
+<p>Each year, predicts ignitions and escapes from the models fitted by <em>fireSense_IgnitionFit</em> and <em>fireSense_EscapeFit</em>, for the ignition component of fireSense <span class="citation">(<a href="#ref-Marchal:2017a">Marchal, Steve G. Cumming, et al. 2017b</a>; <a href="#ref-Marchal:2017b">Marchal, Steve G. Cumming, et al. 2017a</a>; <a href="#ref-Marchal:2019">Marchal et al. 2019</a>)</span>.</p>
+<ol style="list-style-type: decimal">
+<li>The covariates in <code>fireSense_igAndEscapePred_Covariates</code> are rescaled with <code>fireSenseUtils::prepareCovariatesOuter()</code>, the function used for fitting (<code>rescaleVars</code>, <code>modelAlgorithm</code>).</li>
+<li>Expected ignitions per coarse pixel are the mean of the predictions of the per-fold ignition models; the number of ignitions is drawn from a Poisson.</li>
+<li>For coarse pixels with ignitions, the escape probability is the mean of the per-fold escape models, clamped to [0, 1]; escapes are drawn from a binomial with size = ignitions.</li>
+<li>Each ignition is placed in a randomly chosen flammable pixel of <code>flammableRTM</code> inside its coarse pixel.</li>
+</ol>
+<p>Only <code>xgboost</code> models are supported.</p>
 </div>
 <div id="module-inputs-and-parameters" class="section level3">
 <h3>Module inputs and parameters</h3>
+<p><code>ignitionFitRTM</code> (the coarse raster used for fitting, from <em>fireSense_dataPrepFit</em>) is also read from the <code>simList</code>, though it is not declared as an input.
+<code>modelAlgorithm</code> and <code>rescaleVars</code> must have the same value in every module that defines them.</p>
 <p>Table <a href="#tab:moduleInputs-fireSense-IgnitionPredict">1</a> shows the full list of module inputs.</p>
 <table class="table" style="margin-left: auto; margin-right: auto;">
 <caption>
@@ -3050,7 +3058,7 @@ fireSense_EscapeFitted
 fireSense_EscapeFit
 </td>
 <td style="text-align:left;">
-An object of class <code>fireSense_EscapeFit</code> created with the <code>fireSense_IgnitionFit</code> module.
+Fitted escape models (<code>$modelList$model</code>, one per fold), from <code>fireSense_EscapeFit</code>.
 </td>
 <td style="text-align:left;">
 NA
@@ -3064,7 +3072,7 @@ fireSense_IgnitionFitted
 fireSense_IgnitionFit
 </td>
 <td style="text-align:left;">
-An object of class <code>fireSense_IgnitionFit</code> created with the <code>fireSense_IgnitionFit</code> module.
+Fitted ignition models (<code>$modelList$model</code>, one per fold) and <code>$modelList$fittingRes</code>, from <code>fireSense_IgnitionFit</code>.
 </td>
 <td style="text-align:left;">
 NA
@@ -3078,7 +3086,7 @@ fireSense_igAndEscapePred_Covariates
 data.table
 </td>
 <td style="text-align:left;">
-A <code>data.table</code> with prediction variables and a column named ‘pixelID’
+This year’s covariates, from <code>fireSense_dataPrepPredict</code>. <code>pixelID</code> is the cell index of <code>ignitionFitRTM</code>.
 </td>
 <td style="text-align:left;">
 NA
@@ -3092,7 +3100,7 @@ flammableRTM
 SpatRaster
 </td>
 <td style="text-align:left;">
-RTM without ice/rocks/urban/water. Flammable map with 0 and 1.
+Binary raster, 1 where the pixel is flammable.
 </td>
 <td style="text-align:left;">
 NA
@@ -3145,7 +3153,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Can be <code>xgboost</code>, <code>glmmtmb</code>, <code>glm.nb</code>, <code>glmmadaptive</code>, <code>glm</code>; only <code>xgboost</code> is supported currently
+Algorithm used to fit the models; only <code>xgboost</code> is supported. Must agree with the value in the other fireSense modules.
 </td>
 </tr>
 <tr>
@@ -3165,7 +3173,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-Attempt to rescale variables? If <code>rescalers</code> is defined, use it to rescale variables as <code>var / rescalers[&#39;var&#39;]</code>. Otherwise, <code>scale()</code> will be used to rescale variables to <code>[0,1]</code>, if they are not already within this range.
+Rescale the covariates before predicting? With <code>xgboost</code> they are standardized with <code>scale()</code>. Must agree with the value in the other fireSense modules.
 </td>
 </tr>
 <tr>
@@ -3185,7 +3193,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-when to start this module? By default, the start time of the simulation.
+Time of the first prediction.
 </td>
 </tr>
 <tr>
@@ -3205,7 +3213,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-optional. Interval between two runs of this moduleexpressed in units of simulation time. By default, 1 year.
+Interval between predictions, in years. <code>NA</code> predicts once.
 </td>
 </tr>
 <tr>
@@ -3225,7 +3233,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-optional. When to start saving output to a file.
+Time of the <code>save</code> event, which does nothing. <code>NA</code> means never.
 </td>
 </tr>
 <tr>
@@ -3245,7 +3253,7 @@ NA
 NA
 </td>
 <td style="text-align:left;">
-optional. Interval between save events.
+If not <code>NA</code>, the ignition probability raster is plotted each year.
 </td>
 </tr>
 <tr>
@@ -3273,21 +3281,15 @@ Should this entire module be run with caching activated? This is generally inten
 </div>
 <div id="events" class="section level3">
 <h3>Events</h3>
-<!-- TODO -->
 <ul>
-<li>Module initialization;</li>
-<li>Make predictions;</li>
+<li><code>init</code>: schedules <code>run</code> at <code>.runInitialTime</code>, and <code>save</code> at <code>.saveInitialTime</code> if that is not <code>NA</code>.</li>
+<li><code>run</code>: makes the predictions and draws described above; repeats every <code>.runInterval</code>.</li>
+<li><code>save</code>: does nothing but say so. To save the predicted raster, name <code>fireSense_IgAndEscapeProbRas</code> in <code>outputs(sim)</code>.</li>
 </ul>
 </div>
 <div id="plotting" class="section level3">
 <h3>Plotting</h3>
-<!-- TODO -->
-<p>Write what is plotted.</p>
-</div>
-<div id="saving" class="section level3">
-<h3>Saving</h3>
-<!-- TODO -->
-<p>Write what is saved.</p>
+<p>If <code>.saveInterval</code> is not <code>NA</code>, the ignition probability raster is plotted each year with <code>Plots()</code>.</p>
 </div>
 <div id="module-outputs" class="section level3">
 <h3>Module outputs</h3>
@@ -3318,7 +3320,7 @@ fireSense_IgAndEscapeProbRas
 SpatRaster
 </td>
 <td style="text-align:left;">
-a raster layer of the annual ignition and escape probabilities
+Two layers, <code>ignitionProb</code> (expected ignitions per pixel) and <code>escapeProb</code>, at the resolution of <code>ignitionFitRTM</code>.
 </td>
 </tr>
 <tr>
@@ -3329,7 +3331,7 @@ ignitionsAndEscapes
 data.table
 </td>
 <td style="text-align:left;">
-A data.table containing pixelID (referencing flammableRTM), ignitions, escapes, and their associated probabilities
+One row per ignited pixel, in random order: <code>pixelID</code> (cell index of <code>flammableRTM</code>), and <code>igProb</code>, <code>ignitions</code>, <code>escapeProb</code>, <code>escapes</code> of the coarse pixel it was drawn from.
 </td>
 </tr>
 </tbody>
@@ -3337,8 +3339,8 @@ A data.table containing pixelID (referencing flammableRTM), ignitions, escapes, 
 </div>
 <div id="links-to-other-modules" class="section level3">
 <h3>Links to other modules</h3>
-<!-- TODO: add links to other fireSense modules -->
-<p>Predictions made with this module can be used to feed the ignition component of a landscape fire model (e.g fireSense).</p>
+<p>Runs after <em>fireSense_dataPrepPredict</em>, which supplies the covariates. <code>ignitionsAndEscapes</code> is used by <em>fireSense</em> to start fires.
+It is normally run as part of the <a href="https://github.com/PredictiveEcology/fireSense">fireSense</a> module group.</p>
 </div>
 <div id="getting-help" class="section level3">
 <h3>Getting help</h3>
