@@ -134,15 +134,15 @@ IgnitionPredictRun <- function(sim) {
 
   igCov <- na.omit(igCov)
   
-  modelAlgorithm <- paramCheckOtherMods(sim, "modelAlgorithm")
+  paramCheckOtherMods(sim, "modelAlgorithm")
   rescaleVars <- paramCheckOtherMods(sim, "rescaleVars")
-  data <- prepareCovariatesOuter(igCov,
-                                 algorithm = modelAlgorithm, 
-                                 rescaleVars = rescaleVars, useCache = FALSE)
-  pixelId <- igCov$pixelID
-  igCov <- data$covariates
-  set(igCov, NULL, "pixelID", pixelId)
-  
+  # The models were fitted on covariates standardized once, over all fitting years; a year's
+  #   own mean and sd would make every year look average.
+  igCovIgn <- igCovEsc <- igCov
+  if (rescaleVars) {
+    igCovIgn <- scaleAsFit(igCov, sim$fireSense_IgnitionFitted$scaleData, "fireSense_IgnitionFitted")
+    igCovEsc <- scaleAsFit(igCov, sim$fireSense_EscapeFitted$scaleData, "fireSense_EscapeFitted")
+  }
 
   # scaleData <- sim$fireSense_IgnitionFitted$scaleData
   # if (!is.null(scaleData)) {
@@ -174,7 +174,7 @@ IgnitionPredictRun <- function(sim) {
   modsOnly <- modsHere[grep("Fold", names(modsHere))]
   if (!is.null(modsOnly)) {
     predsIgnList <- Map(model = modsOnly, function(model) {
-      predict(model, newdata = igCov)
+      predict(model, newdata = igCovIgn)
     })
 
     predsIgnsMat <- do.call(cbind, predsIgnList)# |> sort() |> unname()
@@ -187,7 +187,7 @@ IgnitionPredictRun <- function(sim) {
     
     predsEscList <- Map(model = modsEscOnly,
                         function(model) {
-                          predsEsc <- predict(model, newdata = igCov[whHasIgns])
+                          predsEsc <- predict(model, newdata = igCovEsc[whHasIgns])
                           pmax(pmin(1, predsEsc), 0) # the escape model is tweedie, so can go above 1, below 0 rarely
                         })
     predsEscsMat <- do.call(cbind, predsEscList)# |> sort() |> unname()
@@ -306,4 +306,20 @@ IgnitionPredictSave <- function(sim) {
 
 scaleAgain <- function(v, center, scale) {
   (v - center)/ scale
+}
+
+# Standardize `covariates` with the center and scale the fit used (`scaleData`, the attributes of
+#   the `scale()`d fitting covariates), not with their own. `pixelID` is a cell number, left alone.
+scaleAsFit <- function(covariates, scaleData, fittedName) {
+  if (is.null(scaleData)) {
+    stop("rescaleVars is TRUE but sim$", fittedName, "$scaleData is NULL; ",
+         "the covariates cannot be standardized as they were for the fit.")
+  }
+  covariates <- copy(covariates)
+  center <- scaleData[["scaled:center"]]
+  scale <- scaleData[["scaled:scale"]]
+  for (v in setdiff(intersect(names(center), colnames(covariates)), "pixelID")) {
+    set(covariates, NULL, v, (covariates[[v]] - center[[v]]) / scale[[v]])
+  }
+  covariates
 }
