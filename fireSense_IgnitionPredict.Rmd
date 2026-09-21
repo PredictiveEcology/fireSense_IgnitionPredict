@@ -45,10 +45,19 @@ download.file(url = "https://img.shields.io/badge/Made%20with-Markdown-1f425f.pn
 
 ### Module summary
 
-Predicts fire frequency or rates of fire counts using a model fitted with the `fireSense_IgnitionFit` module.
-Use them to feed the ignition component of a landscape fire model (e.g fireSense [@Marchal:2017a; @Marchal:2017b; @Marchal:2019]).
+Each year, predicts ignitions and escapes from the models fitted by *fireSense_IgnitionFit* and *fireSense_EscapeFit*, for the ignition component of fireSense [@Marchal:2017a; @Marchal:2017b; @Marchal:2019].
+
+1. The covariates in `fireSense_igAndEscapePred_Covariates` are rescaled with `fireSenseUtils::prepareCovariatesOuter()`, the function used for fitting (`rescaleVars`, `modelAlgorithm`).
+2. Expected ignitions per coarse pixel are the mean of the predictions of the per-fold ignition models; the number of ignitions is drawn from a Poisson.
+3. For coarse pixels with ignitions, the escape probability is the mean of the per-fold escape models, clamped to [0, 1]; escapes are drawn from a binomial with size = ignitions.
+4. Each ignition is placed in a randomly chosen flammable pixel of `flammableRTM` inside its coarse pixel.
+
+Only `xgboost` models are supported.
 
 ### Module inputs and parameters
+
+`ignitionFitRTM` (the coarse raster used for fitting, from *fireSense_dataPrepFit*) is also read from the `simList`, though it is not declared as an input.
+`modelAlgorithm` and `rescaleVars` must have the same value in every module that defines them.
 
 Table \@ref(tab:moduleInputs-fireSense-IgnitionPredict) shows the full list of module inputs.
 
@@ -69,17 +78,14 @@ knitr::kable(df_params, caption = "List of (ref:fireSense-IgnitionPredict) param
 ```
 
 ### Events
-<!-- TODO -->
-- Module initialization;
-- Make predictions;
+
+- `init`: schedules `run` at `.runInitialTime`, and `save` at `.saveInitialTime` if that is not `NA`.
+- `run`: makes the predictions and draws described above; repeats every `.runInterval`.
+- `save`: does nothing but say so. To save the predicted raster, name `fireSense_IgAndEscapeProbRas` in `outputs(sim)`.
 
 ### Plotting
-<!-- TODO -->
-Write what is plotted.
 
-### Saving
-<!-- TODO -->
-Write what is saved.
+If `.saveInterval` is not `NA`, the ignition probability raster is plotted each year with `Plots()`.
 
 ### Module outputs
 
@@ -93,8 +99,8 @@ knitr::kable(df_outputs, caption = "List of (ref:fireSense-IgnitionPredict) outp
 
 ### Links to other modules
 
-<!-- TODO: add links to other fireSense modules -->
-Predictions made with this module can be used to feed the ignition component of a landscape fire model (e.g fireSense).
+Runs after *fireSense_dataPrepPredict*, which supplies the covariates. `ignitionsAndEscapes` is used by *fireSense* to start fires.
+It is normally run as part of the [fireSense](https://github.com/PredictiveEcology/fireSense) module group.
 
 ### Getting help
 

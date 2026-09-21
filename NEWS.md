@@ -4,6 +4,10 @@
 
 - Covariates are now standardized with the center and scale stored by the fit (`fireSense_IgnitionFitted$scaleData`, `fireSense_EscapeFitted$scaleData`). They were standardized with each year's own mean and sd, so every year looked average to the models. With `rescaleVars = TRUE`, a fitted object without `scaleData` is now an error.
 
+## Cleanup
+
+- The `save` event now does nothing and says so. It used to fail, because it wrote `sim$fireSense_IgnitionPredicted`, which the module no longer creates. `IgnitionPredictSave()` is removed.
+
 # fireSense_IgnitionPredict 1.0.0
 
 First release from `development` since `master` was last updated (2021-03-11). Full history: https://github.com/PredictiveEcology/fireSense_IgnitionPredict/compare/5a242fa...v1.0.0
