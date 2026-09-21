@@ -1,7 +1,7 @@
 ---
 title: "fireSense_IgnitionPredict Manual"
-subtitle: "v.0.2.0"
-date: "Last updated: 2025-04-08"
+subtitle: "v.1.0.0.9000"
+date: "Last updated: 2026-09-21"
 output:
   bookdown::html_document2:
     toc: true
@@ -30,7 +30,7 @@ always_allow_html: true
 
 #### Authors:
 
-Jean Marchal <jean.d.marchal@gmail.com> [aut], Eliot McIntire <eliot.mcintire@nrcan-rncan.gc.ca> [aut], Ian Eddy <ian.eddy@nrcan-rncan.gc.ca> [aut, cre], Alex M Chubaty <achubaty@for-cast.ca> [ctb]
+Eliot McIntire <eliot.mcintire@nrcan-rncan.gc.ca> [aut, cre], Ian Eddy <ian.eddy@nrcan-rncan.gc.ca> [aut], Jean Marchal <jean.d.marchal@gmail.com> [aut], Alex M Chubaty <achubaty@for-cast.ca> [ctb]
 <!-- ideally separate authors with new lines, '\n' not working -->
 
 ## Module Overview
@@ -44,7 +44,7 @@ Use them to feed the ignition component of a landscape fire model (e.g fireSense
 
 Table \@ref(tab:moduleInputs-fireSense-IgnitionPredict) shows the full list of module inputs.
 
-<table class="table" style="color: black; margin-left: auto; margin-right: auto;">
+<table class="table" style="margin-left: auto; margin-right: auto;">
 <caption>(\#tab:moduleInputs-fireSense-IgnitionPredict)(\#tab:moduleInputs-fireSense-IgnitionPredict)List of (ref:fireSense-IgnitionPredict) input objects and their description.</caption>
  <thead>
   <tr>
@@ -56,9 +56,27 @@ Table \@ref(tab:moduleInputs-fireSense-IgnitionPredict) shows the full list of m
  </thead>
 <tbody>
   <tr>
+   <td style="text-align:left;"> fireSense_EscapeFitted </td>
+   <td style="text-align:left;"> fireSense_EscapeFit </td>
+   <td style="text-align:left;"> An object of class `fireSense_EscapeFit` created with the `fireSense_IgnitionFit` module. </td>
    <td style="text-align:left;"> NA </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> fireSense_IgnitionFitted </td>
+   <td style="text-align:left;"> fireSense_IgnitionFit </td>
+   <td style="text-align:left;"> An object of class `fireSense_IgnitionFit` created with the `fireSense_IgnitionFit` module. </td>
    <td style="text-align:left;"> NA </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> fireSense_igAndEscapePred_Covariates </td>
+   <td style="text-align:left;"> data.table </td>
+   <td style="text-align:left;"> A `data.table` with prediction variables and a column named 'pixelID' </td>
    <td style="text-align:left;"> NA </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> flammableRTM </td>
+   <td style="text-align:left;"> SpatRaster </td>
+   <td style="text-align:left;"> RTM without ice/rocks/urban/water. Flammable map with 0 and 1. </td>
    <td style="text-align:left;"> NA </td>
   </tr>
 </tbody>
@@ -67,7 +85,7 @@ Table \@ref(tab:moduleInputs-fireSense-IgnitionPredict) shows the full list of m
 Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-IgnitionPredict))
 
 
-<table class="table" style="color: black; margin-left: auto; margin-right: auto;">
+<table class="table" style="margin-left: auto; margin-right: auto;">
 <caption>(\#tab:moduleParams-fireSense-IgnitionPredict)(\#tab:moduleParams-fireSense-IgnitionPredict)List of (ref:fireSense-IgnitionPredict) parameters and their description.</caption>
  <thead>
   <tr>
@@ -81,28 +99,36 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-Ignit
  </thead>
 <tbody>
   <tr>
-   <td style="text-align:left;"> .plots </td>
+   <td style="text-align:left;"> modelAlgorithm </td>
    <td style="text-align:left;"> character </td>
-   <td style="text-align:left;"> screen </td>
+   <td style="text-align:left;"> xgboost </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Used by Plots function, which can be optionally used here </td>
+   <td style="text-align:left;"> Can be `xgboost`, `glmmtmb`, `glm.nb`, `glmmadaptive`, `glm`; only `xgboost` is supported currently </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> .plotInitialTime </td>
+   <td style="text-align:left;"> rescaleVars </td>
+   <td style="text-align:left;"> logical </td>
+   <td style="text-align:left;"> TRUE </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Attempt to rescale variables? If `rescalers` is defined, use it to rescale variables as `var / rescalers['var']`. Otherwise, `scale()` will be used to rescale variables to `[0,1]`, if they are not already within this range. </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> .runInitialTime </td>
    <td style="text-align:left;"> numeric </td>
    <td style="text-align:left;"> 0 </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Describes the simulation time at which the first plot event should occur. </td>
+   <td style="text-align:left;"> when to start this module? By default, the start time of the simulation. </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> .plotInterval </td>
+   <td style="text-align:left;"> .runInterval </td>
    <td style="text-align:left;"> numeric </td>
+   <td style="text-align:left;"> 1 </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Describes the simulation time interval between plot events. </td>
+   <td style="text-align:left;"> optional. Interval between two runs of this moduleexpressed in units of simulation time. By default, 1 year. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .saveInitialTime </td>
@@ -110,7 +136,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-Ignit
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Describes the simulation time at which the first save event should occur. </td>
+   <td style="text-align:left;"> optional. When to start saving output to a file. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .saveInterval </td>
@@ -118,23 +144,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-Ignit
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> This describes the simulation time interval between save events. </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> .studyAreaName </td>
-   <td style="text-align:left;"> character </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Human-readable name for the study area used - e.g., a hash of the studyarea obtained using `reproducible::studyAreaName()` </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> .seed </td>
-   <td style="text-align:left;"> list </td>
-   <td style="text-align:left;">  </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Named list of seeds to use for each event (names). </td>
+   <td style="text-align:left;"> optional. Interval between save events. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .useCache </td>
@@ -142,7 +152,7 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-Ignit
    <td style="text-align:left;"> FALSE </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> Should caching of events or module be used? </td>
+   <td style="text-align:left;"> Should this entire module be run with caching activated? This is generally intended for data-type modules, where stochasticity and time are not relevant </td>
   </tr>
 </tbody>
 </table>
@@ -164,7 +174,7 @@ Write what is saved.
 
 Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-IgnitionPredict)).
 
-<table class="table" style="color: black; margin-left: auto; margin-right: auto;">
+<table class="table" style="margin-left: auto; margin-right: auto;">
 <caption>(\#tab:moduleOutputs-fireSense-IgnitionPredict)(\#tab:moduleOutputs-fireSense-IgnitionPredict)List of (ref:fireSense-IgnitionPredict) outputs and their description.</caption>
  <thead>
   <tr>
@@ -175,9 +185,14 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-Ignit
  </thead>
 <tbody>
   <tr>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> NA </td>
-   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> fireSense_IgAndEscapeProbRas </td>
+   <td style="text-align:left;"> SpatRaster </td>
+   <td style="text-align:left;"> a raster layer of the annual ignition and escape probabilities </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> ignitionsAndEscapes </td>
+   <td style="text-align:left;"> data.table </td>
+   <td style="text-align:left;"> A data.table containing pixelID (referencing flammableRTM), ignitions, escapes, and their associated probabilities </td>
   </tr>
 </tbody>
 </table>
