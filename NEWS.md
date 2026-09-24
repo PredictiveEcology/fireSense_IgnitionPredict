@@ -1,5 +1,9 @@
 # fireSense_IgnitionPredict (development version)
 
+- Several fitted ELFs in one study area: with `fireSense_IgnitionFittedList` and `fireSense_EscapeFittedList` (one fit per ELF, named by `ELFind`) and `rasterToMatchLargeELF`, each ELF's models predict the coarse pixels of that ELF, with its own `scaleData`. The Poisson and binomial draws are still made once over all pixels, so one ELF gives exactly the previous result.
+
+# fireSense_IgnitionPredict (development version)
+
 ## Bug fixes
 
 - Covariates are now standardized with the center and scale stored by the fit (`fireSense_IgnitionFitted$scaleData`, `fireSense_EscapeFitted$scaleData`). They were standardized with each year's own mean and sd, so every year looked average to the models. With `rescaleVars = TRUE`, a fitted object without `scaleData` is now an error.

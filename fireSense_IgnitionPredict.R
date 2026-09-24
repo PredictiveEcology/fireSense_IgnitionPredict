@@ -11,7 +11,7 @@ defineModule(sim, list(
     person("Alex M", "Chubaty", email = "achubaty@for-cast.ca", role = "ctb")
   ),
   childModules = character(),
-  version = list(SpaDES.core = "0.1.0", fireSense_IgnitionPredict = "1.0.0.9000"),
+  version = list(SpaDES.core = "0.1.0", fireSense_IgnitionPredict = "1.0.0.9001"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -53,6 +53,13 @@ defineModule(sim, list(
                  desc = "Fitted escape models (`$modelList$model`, one per fold), from `fireSense_EscapeFit`.",
                  sourceURL = NA
     ),
+    expectsInput("fireSense_IgnitionFittedList", "list",
+                 desc = paste("Only with several fitted ELFs: one `fireSense_IgnitionFitted` per ELF, named by `ELFind`.",
+                              "Each ELF's model predicts the coarse pixels of that ELF.")),
+    expectsInput("fireSense_EscapeFittedList", "list",
+                 desc = "Only with several fitted ELFs: one `fireSense_EscapeFitted` per ELF, named as `fireSense_IgnitionFittedList`."),
+    expectsInput("rasterToMatchLargeELF", "SpatRaster",
+                 desc = "Only with several fitted ELFs: each pixel's ELF (`ELFind`), from `fireSense_ELFs` with a `studyAreaLarge`."),
     expectsInput("fireSense_IgnitionFitted", "fireSense_IgnitionFit",
                  desc = paste("Fitted ignition models (`$modelList$model`, one per fold) and `$modelList$fittingRes`,",
                               "from `fireSense_IgnitionFit`."),
@@ -138,43 +145,37 @@ IgnitionPredictRun <- function(sim) {
   rescaleVars <- paramCheckOtherMods(sim, "rescaleVars")
   # The models were fitted on covariates standardized once, over all fitting years; a year's
   #   own mean and sd would make every year look average.
-  igCovIgn <- igCovEsc <- igCov
-  if (rescaleVars) {
-    igCovIgn <- scaleAsFit(igCov, sim$fireSense_IgnitionFitted$scaleData, "fireSense_IgnitionFitted")
-    igCovEsc <- scaleAsFit(igCov, sim$fireSense_EscapeFitted$scaleData, "fireSense_EscapeFitted")
-  }
+  ## The fitted models: one ignition and one escape fit, or one of each per fitted ELF (named by ELF), each
+  ## applied to the coarse pixels of its own ELF (sim$rasterToMatchLargeELF). The Poisson and binomial draws
+  ## are made once over all pixels, as before, so one ELF gives exactly the old result.
+  fits <- ignitionFitsByELF(sim, igCov$pixelID)
 
   # From here, it makes predictions from each KFold, then averages them to get the probabilities for
   #   each cell; same for Escape, which is conditional on having ignited.
-  modsHere <- sim$fireSense_IgnitionFitted$modelList$model
-  modsOnly <- modsHere[grep("Fold", names(modsHere))]
-  if (!is.null(modsOnly)) {
-    predsIgnList <- Map(model = modsOnly, function(model) {
-      predict(model, newdata = igCovIgn)
-    })
-
-    predsIgnsMat <- do.call(cbind, predsIgnList)
-    predsIgns <- rowMeans(predsIgnsMat)
-    igns <- rpois(NROW(predsIgns), lambda = predsIgns) # can't use rtweedie because don't know the dispersion parameter
-
-    modsEscHere <- sim$fireSense_EscapeFitted$modelList$model
-    modsEscOnly <- modsEscHere[grep("Fold", names(modsEscHere))]
-    whHasIgns <- which(igns > 0)
-    
-    predsEscList <- Map(model = modsEscOnly,
-                        function(model) {
-                          predsEsc <- predict(model, newdata = igCovEsc[whHasIgns])
-                          pmax(pmin(1, predsEsc), 0) # the escape model is tweedie, so can go above 1, below 0 rarely
-                        })
-    predsEscsMat <- do.call(cbind, predsEscList)
-    predsEscs <- rowMeans(predsEscsMat)
-    escs <- rbinom(NROW(predsEscs), size = igns[whHasIgns], prob = predsEscs)
-
-    set(igCov, NULL, c("igProb", "ignitions"), list(predsIgns, igns))
-    set(igCov, whHasIgns, c("escapeProb", "escapes"), list(predsEscs, escs))
-  } else {
-    stop("Not tested anymore")
+  predsIgns <- rep(NA_real_, NROW(igCov))
+  for (f in fits) {
+    covsHere <- igCov[f$rows]
+    # The models were fitted on covariates standardized once, over all fitting years; a year's
+    #   own mean and sd would make every year look average.
+    if (rescaleVars) covsHere <- scaleAsFit(covsHere, f$ign$scaleData, "fireSense_IgnitionFitted")
+    predsIgns[f$rows] <- foldMeanPrediction(f$ign, covsHere)
   }
+  igns <- rpois(NROW(predsIgns), lambda = predsIgns) # can't use rtweedie because don't know the dispersion parameter
+
+  whHasIgns <- which(igns > 0)
+  predsEscs <- rep(NA_real_, NROW(igCov))
+  for (f in fits) {
+    rowsEsc <- intersect(whHasIgns, f$rows)
+    covsHere <- igCov[rowsEsc]
+    if (rescaleVars) covsHere <- scaleAsFit(covsHere, f$esc$scaleData, "fireSense_EscapeFitted")
+    # the escape model is tweedie, so can go above 1, below 0 rarely
+    predsEscs[rowsEsc] <- foldMeanPrediction(f$esc, covsHere, clamp01 = TRUE)
+  }
+  predsEscs <- predsEscs[whHasIgns]
+  escs <- rbinom(NROW(predsEscs), size = igns[whHasIgns], prob = predsEscs)
+
+  set(igCov, NULL, c("igProb", "ignitions"), list(predsIgns, igns))
+  set(igCov, whHasIgns, c("escapeProb", "escapes"), list(predsEscs, escs))
   # Ignite - accounting for spatial resolution of models
 
   # disaggregate the coarse raster to size of flammableRTM
@@ -248,4 +249,51 @@ scaleAsFit <- function(covariates, scaleData, fittedName) {
     set(covariates, NULL, v, (covariates[[v]] - center[[v]]) / scale[[v]])
   }
   covariates
+}
+
+#' The fitted models, per ELF
+#'
+#' With `sim$fireSense_IgnitionFittedList` and `sim$fireSense_EscapeFittedList` (named by `ELFind`), each
+#' coarse pixel is assigned to its ELF from `sim$rasterToMatchLargeELF` (the value at the pixel's centre)
+#' and gets that ELF's models. Otherwise all pixels get `sim$fireSense_IgnitionFitted` and
+#' `sim$fireSense_EscapeFitted`.
+#'
+#' @param sim A `simList`.
+#' @param pixelID the cells of `sim$ignitionFitRTM` to predict.
+#' @return list, one element per fit, each with `ign`, `esc` and `rows` (indices into `pixelID`).
+ignitionFitsByELF <- function(sim, pixelID) {
+  ignL <- sim$fireSense_IgnitionFittedList
+  if (length(ignL) > 1L) {
+    escL <- sim$fireSense_EscapeFittedList
+    if (!setequal(names(ignL), names(escL)))
+      stop("fireSense_IgnitionPredict: fireSense_IgnitionFittedList and fireSense_EscapeFittedList must name ",
+           "the same ELFs")
+    if (is.null(sim$rasterToMatchLargeELF))
+      stop("fireSense_IgnitionPredict: several ignition fits need sim$rasterToMatchLargeELF to say which ELF ",
+           "each pixel is in")
+    elfCoarse <- postProcess(sim$rasterToMatchLargeELF, to = sim$ignitionFitRTM, method = "near")
+    v <- terra::values(elfCoarse[[1]], mat = FALSE)[pixelID]
+    lv <- terra::levels(elfCoarse[[1]])[[1]]
+    elf <- if (is.data.frame(lv) && NCOL(lv) >= 2) as.character(lv[[2]][match(v, lv[[1]])]) else as.character(v)
+    noELF <- sum(!elf %in% names(ignL))
+    if (noELF > 0)
+      warning("fireSense_IgnitionPredict: ", noELF, " coarse pixels are in no ELF with an ignition fit; ",
+              "they get no ignitions", call. = FALSE)
+    return(lapply(names(ignL), function(id)
+      list(ign = ignL[[id]], esc = escL[[id]], rows = which(elf == id))))
+  }
+  list(list(ign = sim$fireSense_IgnitionFitted, esc = sim$fireSense_EscapeFitted,
+            rows = seq_along(pixelID)))
+}
+
+## Mean over the K-fold models of one fit's predictions
+foldMeanPrediction <- function(fit, newdata, clamp01 = FALSE) {
+  mods <- fit$modelList$model
+  modsOnly <- mods[grep("Fold", names(mods))]
+  if (is.null(modsOnly) || !length(modsOnly)) stop("Not tested anymore")
+  preds <- lapply(modsOnly, function(model) {
+    p <- predict(model, newdata = newdata)
+    if (clamp01) pmax(pmin(1, p), 0) else p
+  })
+  rowMeans(do.call(cbind, preds))
 }

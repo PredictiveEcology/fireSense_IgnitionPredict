@@ -18,9 +18,12 @@ test_that("inputs are the expected names and classes", {
   expect_identical(
     inputs[order(names(inputs))],
     c(fireSense_EscapeFitted               = "fireSense_EscapeFit",
+      fireSense_EscapeFittedList           = "list",
       fireSense_igAndEscapePred_Covariates = "data.table",
       fireSense_IgnitionFitted             = "fireSense_IgnitionFit",
-      flammableRTM                         = "SpatRaster")
+      fireSense_IgnitionFittedList         = "list",
+      flammableRTM                         = "SpatRaster",
+      rasterToMatchLargeELF                = "SpatRaster")
   )
 })
 
