@@ -11,7 +11,7 @@ defineModule(sim, list(
     person("Alex M", "Chubaty", email = "achubaty@for-cast.ca", role = "ctb")
   ),
   childModules = character(),
-  version = list(SpaDES.core = "0.1.0", fireSense_IgnitionPredict = "1.0.0.9001"),
+  version = list(SpaDES.core = "0.1.0", fireSense_IgnitionPredict = "1.0.0.9002"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -40,6 +40,8 @@ defineModule(sim, list(
     defineParameter(".saveInterval", "numeric", NA, NA, NA,
                     desc = "If not `NA`, the ignition probability raster is plotted each year."
     ),
+    defineParameter(".studyAreaName", "character", NA, NA, NA,
+                    "Human-readable name for the study area used."),
     defineParameter(".useCache", "logical", FALSE, NA, NA,
                     desc = paste(
                       "Should this entire module be run with caching activated?",

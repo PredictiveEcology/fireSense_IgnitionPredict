@@ -1,5 +1,6 @@
 # fireSense_IgnitionPredict (development version)
 
+- New parameter `.studyAreaName` (default `NA`), the name PredictiveEcology modules use for the study area. This module does not use it yet.
 - Several fitted ELFs in one study area: with `fireSense_IgnitionFittedList` and `fireSense_EscapeFittedList` (one fit per ELF, named by `ELFind`) and `rasterToMatchLargeELF`, each ELF's models predict the coarse pixels of that ELF, with its own `scaleData`. The Poisson and binomial draws are still made once over all pixels, so one ELF gives exactly the previous result.
 
 # fireSense_IgnitionPredict (development version)
