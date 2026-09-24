@@ -1,6 +1,6 @@
 ---
 title: "fireSense_IgnitionPredict Manual"
-subtitle: "v.1.0.0.9001"
+subtitle: "v.1.0.0.9002"
 date: "Last updated: 2026-09-24"
 output:
   bookdown::html_document2:
@@ -172,6 +172,14 @@ Summary of user-visible parameters (Table \@ref(tab:moduleParams-fireSense-Ignit
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> NA </td>
    <td style="text-align:left;"> If not `NA`, the ignition probability raster is plotted each year. </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> .studyAreaName </td>
+   <td style="text-align:left;"> character </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> NA </td>
+   <td style="text-align:left;"> Human-readable name for the study area used. </td>
   </tr>
   <tr>
    <td style="text-align:left;"> .useCache </td>
