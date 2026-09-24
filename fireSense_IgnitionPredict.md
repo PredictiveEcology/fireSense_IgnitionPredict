@@ -1,7 +1,7 @@
 ---
 title: "fireSense_IgnitionPredict Manual"
-subtitle: "v.1.0.0.9000"
-date: "Last updated: 2026-09-21"
+subtitle: "v.1.0.0.9001"
+date: "Last updated: 2026-09-24"
 output:
   bookdown::html_document2:
     toc: true
@@ -68,6 +68,24 @@ Table \@ref(tab:moduleInputs-fireSense-IgnitionPredict) shows the full list of m
    <td style="text-align:left;"> fireSense_EscapeFitted </td>
    <td style="text-align:left;"> fireSense_EscapeFit </td>
    <td style="text-align:left;"> Fitted escape models (`$modelList$model`, one per fold), from `fireSense_EscapeFit`. </td>
+   <td style="text-align:left;"> NA </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> fireSense_IgnitionFittedList </td>
+   <td style="text-align:left;"> list </td>
+   <td style="text-align:left;"> Only with several fitted ELFs: one `fireSense_IgnitionFitted` per ELF, named by `ELFind`. Each ELF's model predicts the coarse pixels of that ELF. </td>
+   <td style="text-align:left;"> NA </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> fireSense_EscapeFittedList </td>
+   <td style="text-align:left;"> list </td>
+   <td style="text-align:left;"> Only with several fitted ELFs: one `fireSense_EscapeFitted` per ELF, named as `fireSense_IgnitionFittedList`. </td>
+   <td style="text-align:left;"> NA </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> rasterToMatchLargeELF </td>
+   <td style="text-align:left;"> SpatRaster </td>
+   <td style="text-align:left;"> Only with several fitted ELFs: each pixel's ELF (`ELFind`), from `fireSense_ELFs` with a `studyAreaLarge`. </td>
    <td style="text-align:left;"> NA </td>
   </tr>
   <tr>
