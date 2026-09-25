@@ -1,7 +1,7 @@
 ---
 title: "fireSense_IgnitionPredict Manual"
-subtitle: "v.1.0.0.9002"
-date: "Last updated: 2026-09-24"
+subtitle: "v.1.0.0.9003"
+date: "Last updated: 2026-09-25"
 output:
   bookdown::html_document2:
     toc: true
@@ -226,7 +226,7 @@ Description of the module outputs (Table \@ref(tab:moduleOutputs-fireSense-Ignit
   <tr>
    <td style="text-align:left;"> ignitionsAndEscapes </td>
    <td style="text-align:left;"> data.table </td>
-   <td style="text-align:left;"> One row per ignited pixel, in random order: `pixelID` (cell index of `flammableRTM`), and `igProb`, `ignitions`, `escapeProb`, `escapes` of the coarse pixel it was drawn from. </td>
+   <td style="text-align:left;"> One row per ignited pixel, in random order: `pixelID` (cell index of `flammableRTM`), `igProb`, `ignitions`, `escapeProb`, `escapes` of the coarse pixel it was drawn from, and `escaped`, whether this ignition escaped: exactly `escapes` of a coarse pixel's rows are TRUE. </td>
   </tr>
 </tbody>
 </table>
