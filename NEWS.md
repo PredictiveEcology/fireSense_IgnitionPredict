@@ -1,5 +1,10 @@
 # fireSense_IgnitionPredict (development version)
 
+- `ignitionsAndEscapes` gains `escaped`: whether each ignition escaped, with exactly `escapes` of a coarse
+  pixel's ignitions TRUE. `escapes` is the coarse pixel's count, repeated on each of its ignitions, and fireSense
+  spread `escapes` fires from every one of them, so a coarse pixel with 4 ignitions and 2 escapes gave 8 escaped
+  fires instead of 2. Version 1.0.0.9003.
+
 - New parameter `.studyAreaName` (default `NA`), the name PredictiveEcology modules use for the study area. This module does not use it yet.
 - Several fitted ELFs in one study area: with `fireSense_IgnitionFittedList` and `fireSense_EscapeFittedList` (one fit per ELF, named by `ELFind`) and `rasterToMatchLargeELF`, each ELF's models predict the coarse pixels of that ELF, with its own `scaleData`. The Poisson and binomial draws are still made once over all pixels, so one ELF gives exactly the previous result.
 

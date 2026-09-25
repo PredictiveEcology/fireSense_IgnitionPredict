@@ -11,7 +11,7 @@ defineModule(sim, list(
     person("Alex M", "Chubaty", email = "achubaty@for-cast.ca", role = "ctb")
   ),
   childModules = character(),
-  version = list(SpaDES.core = "0.1.0", fireSense_IgnitionPredict = "1.0.0.9002"),
+  version = list(SpaDES.core = "0.1.0", fireSense_IgnitionPredict = "1.0.0.9003"),
   timeframe = as.POSIXlt(c(NA, NA)),
   timeunit = "year",
   citation = list("citation.bib"),
@@ -86,7 +86,8 @@ defineModule(sim, list(
     createsOutput(
       "ignitionsAndEscapes", "data.table",
       paste("One row per ignited pixel, in random order: `pixelID` (cell index of `flammableRTM`),",
-            "and `igProb`, `ignitions`, `escapeProb`, `escapes` of the coarse pixel it was drawn from.")
+            "`igProb`, `ignitions`, `escapeProb`, `escapes` of the coarse pixel it was drawn from, and",
+            "`escaped`, whether this ignition escaped: exactly `escapes` of a coarse pixel's rows are TRUE.")
     )
   )
 ))
@@ -201,7 +202,8 @@ IgnitionPredictRun <- function(sim) {
                           sampledChunk <- draw[chunkyPixels == n]
                           pixelID_pop <- igs[chunkyPixels == sampledChunk$chunkyPixels]
                           drawn <- sample(pixelID_pop$pixelID, size = sampledChunk$ignitions)
-                          igPixels <- try(ig[pixelID %in% drawn, .(pixelID, igProb, ignitions, escapeProb, escapes)])
+                          igPixels <- try(ig[pixelID %in% drawn, .(pixelID, igProb, ignitions, escapeProb, escapes,
+                                                                   chunkyPixels)])
                           return(igPixels)
                         }
   ) |>
@@ -218,6 +220,13 @@ IgnitionPredictRun <- function(sim) {
   if (!is.na(P(sim)$.saveInterval)) {
     #TODO: implement proper plotting control
     Plots(igProbRas, types = Par$.plots, filename = paste0("IgnitionProbability_yr", time(sim)))
+  }
+  ## `escapes` counts the coarse pixel's escapes and is repeated on each of its ignitions, so which of
+  ## them escaped is drawn here: exactly `escapes` of the coarse pixel's rows. Drawn after every pixel
+  ## is placed, so the placements do not change.
+  if (NROW(pixelID_igs)) {
+    pixelID_igs[, escaped := seq_len(.N) %in% sample.int(.N, min(escapes[1], .N)), by = "chunkyPixels"]
+    set(pixelID_igs, NULL, "chunkyPixels", NULL)
   }
   randomOrder <- sample(1:nrow(pixelID_igs))
   sim$ignitionsAndEscapes <- pixelID_igs[randomOrder,] #Randomize order
