@@ -47,7 +47,7 @@ test_that("each ignition is a distinct flammable fine cell inside its own coarse
   for (seed in 1:3) {
     sim <- toyIgRun(twoFolds(), seed = seed)
     ig <- igTable(sim)
-    expect_identical(names(ig), c("pixelID", "igProb", "ignitions", "escapeProb", "escapes"))
+    expect_identical(names(ig), c("pixelID", "igProb", "ignitions", "escapeProb", "escapes", "escaped"))
     expect_gt(nrow(ig), 0)
     expect_false(anyDuplicated(ig$pixelID) > 0)
     coarse <- coarseOfFine(ig$pixelID)
